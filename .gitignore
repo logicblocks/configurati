@@ -1,0 +1,18 @@
+# Build
+/target
+/classes
+/checkouts
+*.jar
+*.class
+
+# Tools
+pom.xml
+pom.xml.asc
+/.lein-*
+/.nrepl-port
+
+# IntelliJ
+*.iml
+*.ipr
+*.iws
+.idea
