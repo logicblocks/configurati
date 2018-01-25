@@ -1,6 +1,6 @@
 # configurati
 
-Clojure library for interrogating Java types for annotation information.
+Clojure library for managing application configuration.
 
 ## Installation
 
