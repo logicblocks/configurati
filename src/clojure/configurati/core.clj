@@ -1,45 +1,68 @@
 (ns configurati.core)
 
-(def ^:private new-validation-result
-  {:missing []})
+; what to do with superfluous map entries?
+
+(defprotocol Evaluatable
+  (evaluate [configuration-specification configuration-map]))
+
+(defprotocol Processable
+  (validate [parameter value])
+  (default [parameter value]))
+
+(defn- evaluation-result [configuration-map]
+  {:missing   []
+   :original  configuration-map
+   :evaluated {}})
 
 (defn- missing? [parameter value]
   (and
     (nil? value)
     (not (:nilable parameter))))
 
-(defn- mark-missing [validation-result name]
-  (update-in validation-result [:missing] #(conj % name)))
+(defn- has-errors? [evaluation-result]
+  (empty? (:missing evaluation-result)))
 
-(defn- determine-validation-result [parameters configuration-map]
+(defn- with-error [evaluation-result name error-type]
+  (update-in evaluation-result [error-type] #(conj % name)))
+
+(defn- with-value [evaluation-result name value]
+  (update-in evaluation-result [:evaluated] #(assoc % name value)))
+
+(defn- determine-evaluation-result [parameters configuration-map]
   (reduce
-    (fn [validation-result parameter]
+    (fn [evaluation-result parameter]
       (let [name (:name parameter)
-            value (name configuration-map)]
-        (cond
-          (missing? parameter value) (mark-missing validation-result name)
-          :else validation-result)))
-    new-validation-result
+            initial (name configuration-map)
+            defaulted (default parameter initial)
+            validity (validate parameter defaulted)
+            error (:error validity)]
+        (if error
+          (with-error evaluation-result name error)
+          (with-value evaluation-result name defaulted))))
+    (evaluation-result configuration-map)
     parameters))
 
-(defn- validation-result-empty? [validation-result]
-  (empty? (:missing validation-result)))
-
-(defprotocol ConfigurationValidator
-  (validate [configuration-specification configuration-map]))
-
 (defrecord ConfigurationSpecification [parameters]
-  ConfigurationValidator
-  (validate [this configuration-map]
-    (let [validation-result (determine-validation-result
+  Evaluatable
+  (evaluate [this configuration-map]
+    (let [evaluation-result (determine-evaluation-result
                               parameters
                               configuration-map)
-          valid? (validation-result-empty? validation-result)]
+          valid? (has-errors? evaluation-result)]
       (if valid?
-        configuration-map
+        (:evaluated evaluation-result)
         (throw (ex-info
-                 "Configuration validation failed."
-                 validation-result))))))
+                 "Configuration evaluation failed."
+                 evaluation-result))))))
+
+(defrecord ConfigurationParameter [name nilable default]
+  Processable
+  (validate [this value]
+    (cond
+      (missing? this value) {:error :missing :value value}
+      :else {:error nil :value value}))
+  (default [this value]
+    (or value default)))
 
 (defn configuration-specification [& parameters]
   (->ConfigurationSpecification parameters))
@@ -48,4 +71,5 @@
   (let [defaults {:nilable false}
         base {:name name}
         options (apply hash-map rest)]
-    (merge defaults base options)))
+    (map->ConfigurationParameter
+      (merge defaults base options))))
