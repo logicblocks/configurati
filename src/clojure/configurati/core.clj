@@ -1,6 +1,11 @@
-(ns configurati.core)
-
-; what to do with superfluous map entries?
+(ns configurati.core
+  (:refer-clojure :exclude [replace])
+  (:require
+    [environ.core :refer [env]]
+    [clojure.string :refer [join lower-case replace]]
+    [clj-yaml.core :as yaml]
+    [medley.core :refer [map-keys]])
+  (:import [clojure.lang ILookup]))
 
 (defprotocol Evaluatable
   (evaluate [configuration-specification configuration-map]))
@@ -52,13 +57,9 @@
 
 (defmulti convert-to (fn [type value] type))
 (defmethod convert-to :integer [_ value]
-  (if value
-    (Integer/parseInt value)
-    nil))
+  (if value (Integer/parseInt (str value)) nil))
 (defmethod convert-to :string [_ value]
-  (if value
-    (String/valueOf value)
-    nil))
+  (if value (String/valueOf value) nil))
 (defmethod convert-to :default [_ value]
   value)
 
@@ -103,3 +104,60 @@
         options (apply hash-map rest)]
     (map->ConfigurationParameter
       (merge defaults base options))))
+
+(deftype MapConfigurationSource [map]
+  ILookup
+  (valAt [_ parameter-name]
+    (get map parameter-name))
+  (valAt [_ parameter-name default]
+    (get map parameter-name default)))
+
+(defn map-source [map]
+  (->MapConfigurationSource map))
+
+(defn- prefix-keyword [prefix key]
+  (if prefix
+    (keyword (join "-" [(name prefix) (name key)]))
+    key))
+
+(deftype EnvConfigurationSource [prefix]
+  ILookup
+  (valAt [_ parameter-name]
+    (env (prefix-keyword prefix parameter-name)))
+  (valAt [_ parameter-name default]
+    (env (prefix-keyword prefix parameter-name) default)))
+
+(defn env-source [& rest]
+  (let [options (apply hash-map rest)
+        prefix (:prefix options)]
+    (->EnvConfigurationSource prefix)))
+
+(defn- to-kebab-case-keyword [value]
+  (-> (name value)
+    (lower-case)
+    (replace "_" "-")
+    (replace "." "-")
+    (keyword)))
+
+(defn- convert-keys-to-kebab-case [coll]
+  (map-keys to-kebab-case-keyword coll))
+
+(defn- read-yaml-configuration-file [path]
+  (->>
+    (slurp path)
+    (yaml/parse-string)
+    (convert-keys-to-kebab-case)))
+
+(deftype YamlFileConfigurationSource [path prefix]
+  ILookup
+  (valAt [_ parameter-name]
+    (let [contents (read-yaml-configuration-file path)]
+      (get contents (prefix-keyword prefix parameter-name))))
+  (valAt [_ parameter-name default]
+    (let [contents (read-yaml-configuration-file path)]
+      (get contents (prefix-keyword prefix parameter-name) default))))
+
+(defn yaml-file-source [path & rest]
+  (let [options (apply hash-map rest)
+        prefix (:prefix options)]
+    (->YamlFileConfigurationSource path prefix)))
