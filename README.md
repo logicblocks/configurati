@@ -1,5 +1,7 @@
 # configurati
 
+[![Clojars Project](https://img.shields.io/clojars/v/configurati.svg)](https://clojars.org/configurati)
+
 Clojure library for managing application configuration.
 
 ## Installation
