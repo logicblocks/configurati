@@ -372,4 +372,38 @@
           (is (= {:api-username "some-username"
                   :api-password "some-password"
                   :api-port     5000}
-                (resolve configuration))))))))
+                (resolve configuration))))))
+
+    (testing "can be created from an existing specification"
+      (let [specification (configuration-specification
+                            (with-parameter :api-username)
+                            (with-parameter :api-password))
+            configuration (define-configuration
+                            (with-source
+                              (map-source {:api-username "some-username"
+                                           :api-password "some-password"
+                                           :api-port     "5000"}))
+                            (with-specification specification)
+                            (with-parameter :api-port :as :integer))]
+        (is (= {:api-username "some-username"
+                :api-password "some-password"
+                :api-port     5000}
+              (resolve configuration)))))
+
+    (testing "can be created from multiple existing specifications"
+      (let [specification1 (configuration-specification
+                             (with-parameter :api-username)
+                             (with-parameter :api-password))
+            specification2 (configuration-specification
+                             (with-parameter :api-port :as :integer))
+            configuration (define-configuration
+                            (with-source
+                              (map-source {:api-username "some-username"
+                                           :api-password "some-password"
+                                           :api-port     "5000"}))
+                            (with-specification specification1)
+                            (with-specification specification2))]
+        (is (= {:api-username "some-username"
+                :api-password "some-password"
+                :api-port     5000}
+              (resolve configuration)))))))

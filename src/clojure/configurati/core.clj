@@ -40,14 +40,23 @@
 (defn with-source [source]
   [:source source])
 
+(defn with-specification [specification]
+  [:specification specification])
+
 (defn configuration-specification [& parameters]
-  (let [parameter-set (mapv second parameters)]
+  (let [parameter-set (map second parameters)]
     (->ConfigurationSpecification parameter-set)))
 
 (defn define-configuration [& rest]
   (let [elements (group-by #(first %) rest)
-        parameters (mapv second (:parameter elements))
-        sources (mapv second (:source elements))]
+        specifications (map second (:specification elements))
+        parameters (concat
+                     (map second (:parameter elements))
+                     (reduce (fn [parameters specification]
+                               (concat parameters (:parameters specification)))
+                       []
+                       specifications))
+        sources (map second (:source elements))]
     (->ConfigurationDefinition
       (->MultiConfigurationSource sources)
       (->ConfigurationSpecification parameters))))
