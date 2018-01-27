@@ -275,6 +275,25 @@ Currently, when configuration specifications are merged as part of a definition,
 any key functions are ignored and must be explicitly specified as part of the
 definition.
 
+## Advanced Usage
+
+### Custom converters
+
+To add a parameter type, implement the `convert-to` multimethod in
+`configurati.conversions`: 
+
+```clojure
+(require '[configurati.conversions :refer [convert-to]])
+
+(defmethod convert-to :boolean [_ value]
+  (if (#{"true" true} value) true false))
+
+(def configuration
+  (define-configuration
+    (with-parameter :encrypted? :as :boolean)
+    ...))
+```
+
 ## License
 
 Copyright © 2017 Toby Clemson

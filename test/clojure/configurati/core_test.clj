@@ -11,8 +11,12 @@
              validate
              convert]]
     [configurati.specification
-     :refer [evaluate]])
+     :refer [evaluate]]
+    [configurati.conversions :refer [convert-to]])
   (:import [clojure.lang ExceptionInfo]))
+
+(defmethod convert-to :boolean [_ value]
+  (if (#{"true" true} value) true false))
 
 (deftest configuration-parameters
   (testing "construction"
@@ -196,6 +200,13 @@
                               (with-parameter :api-port :as :integer))
               configuration-source {:api-port "5000"}]
           (is (= {:api-port 5000}
+                (evaluate specification configuration-source)))))
+
+      (testing "uses custom converter when defined"
+        (let [specification (configuration-specification
+                              (with-parameter :encrypted? :as :boolean))
+              configuration-source {:encrypted? "true"}]
+          (is (= {:encrypted? true}
                 (evaluate specification configuration-source)))))
 
       (testing "throws exception when parameter fails to convert"
