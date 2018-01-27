@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [replace resolve])
   (:require
     [clojure.test :refer :all]
+    [clojure.string :refer [replace]]
 
     [configurati.core :refer :all]
     [configurati.parameters
@@ -279,7 +280,7 @@
           (is (= {:api-port 5000}
                 (evaluate specification configuration-source)))))
 
-      (testing "nilables parameters convert correctly when nil"
+      (testing "nilable parameters convert correctly when nil"
         (let [specification (configuration-specification
                               (with-parameter :api-port
                                 :as :integer
@@ -291,6 +292,33 @@
                                     :api-host nil}]
           (is (= {:api-port nil
                   :api-host nil}
+                (evaluate specification configuration-source)))))
+
+      (testing "applies key function to each key before returning"
+        (let [specification (configuration-specification
+                              (with-parameter :api-username)
+                              (with-parameter :api-password)
+                              (with-key-fn
+                                #(keyword (replace (name %) "api-" ""))))
+              configuration-source {:api-username "some-username"
+                                    :api-password "some-password"}]
+          (is (= {:username "some-username"
+                  :password "some-password"}
+                (evaluate specification configuration-source)))))
+
+      (testing (str "applies many key functions to each key in supplied order "
+                 "before returning")
+        (let [specification (configuration-specification
+                              (with-parameter :api-username)
+                              (with-parameter :api-password)
+                              (with-key-fn
+                                #(keyword (replace (name %) "api-" "")))
+                              (with-key-fn
+                                #(keyword (str "service-" (name %)))))
+              configuration-source {:api-username "some-username"
+                                    :api-password "some-password"}]
+          (is (= {:service-username "some-username"
+                  :service-password "some-password"}
                 (evaluate specification configuration-source))))))))
 
 (deftest configuration-sources
@@ -406,4 +434,22 @@
         (is (= {:api-username "some-username"
                 :api-password "some-password"
                 :api-port     5000}
+              (resolve configuration)))))
+
+    (testing "uses provided key functions"
+      (let [configuration (define-configuration
+                            (with-source
+                              (map-source {:api-username "some-username"
+                                           :api-password "some-password"
+                                           :api-port     "5000"}))
+                            (with-parameter :api-username)
+                            (with-parameter :api-password)
+                            (with-parameter :api-port :as :integer)
+                            (with-key-fn
+                              #(keyword (replace (name %) "api-" "")))
+                            (with-key-fn
+                              #(keyword (str "service-" (name %)))))]
+        (is (= {:service-username "some-username"
+                :service-password "some-password"
+                :service-port     5000}
               (resolve configuration)))))))

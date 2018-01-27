@@ -40,12 +40,17 @@
 (defn with-source [source]
   [:source source])
 
+(defn with-key-fn [fn]
+  [:key-fn fn])
+
 (defn with-specification [specification]
   [:specification specification])
 
-(defn configuration-specification [& parameters]
-  (let [parameter-set (map second parameters)]
-    (->ConfigurationSpecification parameter-set)))
+(defn configuration-specification [& rest]
+  (let [elements (group-by #(first %) rest)
+        parameters (map second (:parameter elements))
+        key-fn (apply comp (map second (:key-fn elements)))]
+    (->ConfigurationSpecification parameters key-fn)))
 
 (defn define-configuration [& rest]
   (let [elements (group-by #(first %) rest)
@@ -56,10 +61,11 @@
                                (concat parameters (:parameters specification)))
                        []
                        specifications))
+        key-fn (apply comp (map second (:key-fn elements)))
         sources (map second (:source elements))]
     (->ConfigurationDefinition
       (->MultiConfigurationSource sources)
-      (->ConfigurationSpecification parameters))))
+      (->ConfigurationSpecification parameters key-fn))))
 
 (defn resolve [definition]
   (configurati.definition/resolve definition))
