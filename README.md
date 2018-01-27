@@ -157,6 +157,39 @@ Note, if multiple sources are provided to `define-configuration`, a
 `multi-source` is automatically created in the background passing the sources
 in the same order as they are provided.
 
+### Key Functions
+
+You may wish to refer to configuration parameters differently in code compared
+to how they are specified in the configuration sources. Key functions enable 
+this.
+
+When a configuration is defined, one or more key functions can be provided
+allowing keys to be transformed during configuration resolution:
+
+```clojure
+(require '[clojure.string :refer [replace]])
+
+(def api-configuration
+  (define-configuration
+    (with-source
+      (map-source {:api-username "some-username"
+                   :api-password "some-password"
+                   :api-port     "5000"}))
+    (with-parameter :api-username)
+    (with-parameter :api-password)
+    (with-parameter :api-port :as :integer)
+    (with-key-fn
+      #(keyword (replace (name %) "api-" "")))
+    (with-key-fn
+      #(keyword (str "service-" (name %))))))
+
+(resolve api-configuration)
+=>
+{:service-username "some-username"
+ :service-password "some-password"
+ :service-port     5000}
+```
+
 ### Specifications
 
 A set of parameters makes up a configuration specification. Configuration
@@ -224,6 +257,23 @@ is the same as:
     (with-parameter :other-parameter)
     ...))
 ```
+
+A configuration specification optionally takes one or more key functions 
+similar to those described above:
+
+```clojure
+(require '[clojure.string :refer [replace]])
+
+(def database-configuration-specification
+  (configuration-specification
+    (with-key-fn 
+      #(keyword (replace (name %) "api-" "")))
+    ...))
+```
+
+Currently, when configuration specifications are merged as part of a definition, 
+any key functions are ignored and must be explicitly specified as part of the
+definition.
 
 ## License
 
