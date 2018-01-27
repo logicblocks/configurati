@@ -3,40 +3,47 @@
   (:require
     [clojure.test :refer :all]
 
-    [configurati.core :refer :all])
+    [configurati.core :refer :all]
+    [configurati.parameters
+     :refer [map->ConfigurationParameter
+             default
+             validate
+             convert]]
+    [configurati.specification
+     :refer [evaluate]])
   (:import [clojure.lang ExceptionInfo]))
 
 (deftest configuration-parameters
   (testing "construction"
-    (is (= {:parameter (map->ConfigurationParameter
+    (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable false
                           :default nil
-                          :as      :string})}
+                          :as      :string})]
           (with-parameter :api-username)))
-    (is (= {:parameter (map->ConfigurationParameter
+    (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable false
                           :default nil
-                          :as      :string})}
+                          :as      :string})]
           (with-parameter :api-username :nilable false)))
-    (is (= {:parameter (map->ConfigurationParameter
+    (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable true
                           :default nil
-                          :as      :string})}
+                          :as      :string})]
           (with-parameter :api-username :nilable true)))
-    (is (= {:parameter (map->ConfigurationParameter
+    (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable false
                           :default "username"
-                          :as      :string})}
+                          :as      :string})]
           (with-parameter :api-username :default "username")))
-    (is (= {:parameter (map->ConfigurationParameter
+    (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-port
                           :nilable false
                           :default nil
-                          :as      :integer})}
+                          :as      :integer})]
           (with-parameter :api-port :as :integer))))
 
   (testing "defaulting"
