@@ -290,8 +290,12 @@ To add a parameter type, implement the `convert-to` multimethod in
 
 (def configuration
   (define-configuration
-    (with-parameter :encrypted? :as :boolean)
-    ...))
+    (with-source (map-source {:encrypted? "true"}))
+    (with-parameter :encrypted? :as :boolean)))
+
+(resolve configuration)
+=>
+{:encrypted? true}
 ```
 
 ## License
