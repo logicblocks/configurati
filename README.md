@@ -153,6 +153,78 @@ order the sources are specified at construction.
     ...))
 ```
 
+Note, if multiple sources are provided to `define-configuration`, a 
+`multi-source` is automatically created in the background passing the sources
+in the same order as they are provided.
+
+### Specifications
+
+A set of parameters makes up a configuration specification. Configuration
+specifications can be created separately from defining configuration:
+
+```clojure
+(def database-configuration-specification
+  (configuration-specification
+    (with-parameter :database-host)
+    (with-parameter :database-port :as :integer)
+    (with-parameter :database-scheme :default "default-schema")))
+
+...
+
+(def database-configuration
+  (define-configuration
+    (with-specification
+      database-configuration-specification)
+    ...))
+```
+
+This is useful if different configuration sources need to be used at different
+times for the same configuration specification.
+
+`define-configuration` supports multiple specifications whose parameters are
+merged together to form one specification. Additional parameters can also be
+specified:
+
+```clojure
+(def database-configuration-specification
+  (configuration-specification
+    (with-parameter :database-host)
+    (with-parameter :database-port :as :integer)
+    (with-parameter :database-scheme :default "default-schema")))
+
+(def service-configuration-specification
+  (configuration-specification
+    (with-parameter :service-host)
+    (with-parameter :service-port :as :integer)
+    (with-parameter :service-token)))
+
+...
+
+(def database-configuration
+  (define-configuration
+    (with-specification
+      database-configuration-specification)
+    (with-specification
+      service-configuration-specification)
+    (with-parameter :other-parameter)
+    ...))
+```
+
+is the same as:
+
+```clojure
+(def database-configuration
+  (define-configuration
+    (with-parameter :database-host)
+    (with-parameter :database-port :as :integer)
+    (with-parameter :database-scheme :default "default-schema")
+    (with-parameter :service-host)
+    (with-parameter :service-port :as :integer)
+    (with-parameter :service-token)
+    (with-parameter :other-parameter)
+    ...))
+```
+
 ## License
 
 Copyright © 2017 Toby Clemson
