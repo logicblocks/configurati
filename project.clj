@@ -10,5 +10,5 @@
   :source-paths ["src/clojure"]
   :test-paths ["test/clojure"]
   :java-source-paths ["src/java" "test/java"]
-  :deploy-repositories [["releases" {:url     "https://clojars.org/repo/"
-                                     :creds   :gpg}]])
+  :deploy-repositories [["releases" {:url   "https://clojars.org/repo/"
+                                     :creds :gpg}]])

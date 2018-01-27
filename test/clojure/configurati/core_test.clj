@@ -1,4 +1,5 @@
 (ns configurati.core-test
+  (:refer-clojure :exclude [replace resolve])
   (:require
     [clojure.test :refer :all]
 
@@ -7,26 +8,35 @@
 
 (deftest configuration-parameters
   (testing "construction"
-    (is (= (map->ConfigurationParameter
-             {:name :api-username :nilable false :default nil :as :string})
+    (is (= {:parameter (map->ConfigurationParameter
+                         {:name    :api-username
+                          :nilable false
+                          :default nil
+                          :as      :string})}
           (with-parameter :api-username)))
-    (is (= (map->ConfigurationParameter
-             {:name :api-username :nilable false :default nil :as :string})
+    (is (= {:parameter (map->ConfigurationParameter
+                         {:name    :api-username
+                          :nilable false
+                          :default nil
+                          :as      :string})}
           (with-parameter :api-username :nilable false)))
-    (is (= (map->ConfigurationParameter
-             {:name :api-username :nilable true :default nil :as :string})
+    (is (= {:parameter (map->ConfigurationParameter
+                         {:name    :api-username
+                          :nilable true
+                          :default nil
+                          :as      :string})}
           (with-parameter :api-username :nilable true)))
-    (is (= (map->ConfigurationParameter
-             {:name    :api-username
-              :nilable false
-              :default "username"
-              :as      :string})
+    (is (= {:parameter (map->ConfigurationParameter
+                         {:name    :api-username
+                          :nilable false
+                          :default "username"
+                          :as      :string})}
           (with-parameter :api-username :default "username")))
-    (is (= (map->ConfigurationParameter
-             {:name    :api-port
-              :nilable false
-              :default nil
-              :as      :integer})
+    (is (= {:parameter (map->ConfigurationParameter
+                         {:name    :api-port
+                          :nilable false
+                          :default nil
+                          :as      :integer})}
           (with-parameter :api-port :as :integer))))
 
   (testing "defaulting"
@@ -303,4 +313,56 @@
                          :prefix :database))))
       (is (= nil
             (:host (yaml-file-source "path/to/config.yaml"
-                     :prefix :database)))))))
+                     :prefix :database))))))
+
+  (testing "multi source"
+    (with-redefs
+      [clojure.core/slurp (fn [path]
+                            (if (= path "path/to/config.yaml")
+                              (str
+                                "---\n"
+                                "api_username: \"some-username\"\n"
+                                "api_password: \"some-password\"\n")))]
+      (let [source (multi-source
+                     (yaml-file-source "path/to/config.yaml")
+                     (map-source {:api-username "default-username"
+                                  :api-port     "5000"}))]
+        (is (= "some-username" (:api-username source)))
+        (is (= "5000" (:api-port source)))
+        (is (= nil (:api-host source)))))))
+
+(deftest configuration-definition
+  (testing "resolve"
+    (testing "resolves all parameters in the specification"
+      (let [configuration (define-configuration
+                            (with-source (map-source
+                                           {:api-username "some-username"
+                                            :api-port     "5000"}))
+                            (with-parameter :api-username)
+                            (with-parameter :api-port
+                              :as :integer))]
+        (is (= {:api-username "some-username"
+                :api-port     5000}
+              (resolve configuration)))))
+
+    (testing "resolves from multiple sources"
+      (with-redefs
+        [clojure.core/slurp (fn [path]
+                              (if (= path "path/to/config.yaml")
+                                (str
+                                  "---\n"
+                                  "api_username: \"some-username\"\n"
+                                  "api_password: \"some-password\"\n")))]
+        (let [configuration (define-configuration
+                              (with-source
+                                (map-source {:api-port "5000"}))
+                              (with-source
+                                (yaml-file-source "path/to/config.yaml"))
+                              (with-parameter :api-username)
+                              (with-parameter :api-password)
+                              (with-parameter :api-port
+                                :as :integer))]
+          (is (= {:api-username "some-username"
+                  :api-password "some-password"
+                  :api-port     5000}
+                (resolve configuration))))))))
