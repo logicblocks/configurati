@@ -26,9 +26,9 @@ Configurati allows sets of configuration to be defined:
 ```
 
 This defines a configuration that will look up parameter values in the 
-environment using `environ`, converting `database-port` to an integer and 
-leaving all other parameters as strings, defaulting `database-schema` to
-`"default-schema"`.  
+environment using [environ](https://github.com/weavejester/environ), converting 
+`database-port` to an integer and leaving all other parameters as strings, 
+defaulting `database-schema` to `"default-schema"`.  
 
 Assuming an environment of:
 
