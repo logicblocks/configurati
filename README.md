@@ -197,7 +197,7 @@ specifications can be created separately from defining configuration:
 
 ```clojure
 (def database-configuration-specification
-  (configuration-specification
+  (define-configuration-specification
     (with-parameter :database-host)
     (with-parameter :database-port :as :integer)
     (with-parameter :database-scheme :default "default-schema")))
@@ -220,13 +220,13 @@ specified:
 
 ```clojure
 (def database-configuration-specification
-  (configuration-specification
+  (define-configuration-specification
     (with-parameter :database-host)
     (with-parameter :database-port :as :integer)
     (with-parameter :database-scheme :default "default-schema")))
 
 (def service-configuration-specification
-  (configuration-specification
+  (define-configuration-specification
     (with-parameter :service-host)
     (with-parameter :service-port :as :integer)
     (with-parameter :service-token)))
@@ -265,7 +265,7 @@ similar to those described above:
 (require '[configurati.key-fns :refer [remove-prefix]])
 
 (def database-configuration-specification
-  (configuration-specification
+  (define-configuration-specification
     (with-key-fn (remove-prefix :api))
     ...))
 ```

@@ -92,7 +92,7 @@
                                  (evaluate specification configuration-source)
                                  (catch ExceptionInfo e e)))]
       (testing "returns configuration map when no errors occur"
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-username :nilable false)
                               (with-parameter :api-password :nilable false))
               configuration-source {:api-username "some-username"
@@ -101,7 +101,7 @@
                 (evaluate specification configuration-source)))))
 
       (testing "throws exception when non-nilable parameter is nil"
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-username :nilable false)
                               (with-parameter :api-password :nilable false)
                               (with-parameter :api-group :nilable true))
@@ -124,7 +124,7 @@
 
       (testing (str "throws exception with all missing parameters when "
                  "multiple non-nilable parameters are nil")
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-username :nilable false)
                               (with-parameter :api-password :nilable false)
                               (with-parameter :api-group :nilable true))
@@ -148,7 +148,7 @@
 
       (testing "returns provided default when parameter is nil"
         (let [default-identifier "default-identifier"
-              specification (configuration-specification
+              specification (define-configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
                               (with-parameter :api-identifier
@@ -162,7 +162,7 @@
 
       (testing "returns provided default when parameter is not present"
         (let [default-identifier "default-identifier"
-              specification (configuration-specification
+              specification (define-configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
                               (with-parameter :api-identifier
@@ -175,7 +175,7 @@
 
       (testing (str "returns nil when nilable, no default specified and "
                  "parameter is nil")
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
                               (with-parameter :api-group :nilable true))
@@ -187,7 +187,7 @@
 
       (testing (str "returns nil when nilable, no default specified and "
                  "parameter is not present")
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
                               (with-parameter :api-group :nilable true))
@@ -199,21 +199,21 @@
 
       (testing (str "returns converted parameter when type specified and value "
                  "is convertible")
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-port :as :integer))
               configuration-source {:api-port "5000"}]
           (is (= {:api-port 5000}
                 (evaluate specification configuration-source)))))
 
       (testing "uses custom converter when defined"
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :encrypted? :as :boolean))
               configuration-source {:encrypted? "true"}]
           (is (= {:encrypted? true}
                 (evaluate specification configuration-source)))))
 
       (testing "throws exception when parameter fails to convert"
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-identifier)
                               (with-parameter :api-port :as :integer))
               configuration-source {:api-identifier "some-identifier"
@@ -234,7 +234,7 @@
 
       (testing (str "throws exception with all unconvertible parameters when "
                  "multiple parameters fail to convert")
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-port1 :as :integer)
                               (with-parameter :api-port2 :as :integer)
                               (with-parameter :api-group))
@@ -258,7 +258,7 @@
 
       (testing (str "throws exception with all unconvertible and missing "
                  "parameters when multiple parameters are in error")
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
                               (with-parameter :api-port1 :as :integer)
@@ -286,7 +286,7 @@
                 (ex-data exception)))))
 
       (testing "converts default"
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-port
                                 :as :integer
                                 :default "5000"))
@@ -295,7 +295,7 @@
                 (evaluate specification configuration-source)))))
 
       (testing "nilable parameters convert correctly when nil"
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-port
                                 :as :integer
                                 :nilable true)
@@ -309,7 +309,7 @@
                 (evaluate specification configuration-source)))))
 
       (testing "applies key function to each key before returning"
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
                               (with-key-fn (remove-prefix :api)))
@@ -321,7 +321,7 @@
 
       (testing (str "applies many key functions to each key in supplied order "
                  "before returning")
-        (let [specification (configuration-specification
+        (let [specification (define-configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
                               (with-key-fn (remove-prefix :api))
@@ -414,7 +414,7 @@
                 (resolve configuration))))))
 
     (testing "can be created from an existing specification"
-      (let [specification (configuration-specification
+      (let [specification (define-configuration-specification
                             (with-parameter :api-username)
                             (with-parameter :api-password))
             configuration (define-configuration
@@ -430,10 +430,10 @@
               (resolve configuration)))))
 
     (testing "can be created from multiple existing specifications"
-      (let [specification1 (configuration-specification
+      (let [specification1 (define-configuration-specification
                              (with-parameter :api-username)
                              (with-parameter :api-password))
-            specification2 (configuration-specification
+            specification2 (define-configuration-specification
                              (with-parameter :api-port :as :integer))
             configuration (define-configuration
                             (with-source

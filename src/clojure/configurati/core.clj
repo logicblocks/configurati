@@ -46,7 +46,7 @@
 (defn with-specification [specification]
   [:specification specification])
 
-(defn configuration-specification [& rest]
+(defn define-configuration-specification [& rest]
   (let [elements (group-by #(first %) rest)
         parameters (map second (:parameter elements))
         key-fn (apply comp (map second (:key-fn elements)))]
