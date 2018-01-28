@@ -61,7 +61,10 @@
                                (concat parameters (:parameters specification)))
                        []
                        specifications))
-        key-fn (apply comp (map second (:key-fn elements)))
+        key-fn (apply comp
+                 (concat
+                   (map second (:key-fn elements))
+                   (map :key-fn specifications)))
         sources (map second (:source elements))]
     (->ConfigurationDefinition
       (->MultiConfigurationSource sources)

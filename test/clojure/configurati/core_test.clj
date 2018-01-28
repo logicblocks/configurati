@@ -447,6 +447,22 @@
                 :api-port     5000}
               (resolve configuration)))))
 
+    (testing "composes key functions when defined on specifications"
+      (let [specification1 (define-configuration-specification
+                             (with-parameter :api-username)
+                             (with-key-fn (add-prefix :service)))
+            specification2 (define-configuration-specification
+                             (with-parameter :api-password)
+                             (with-key-fn (remove-prefix :api)))
+            configuration (define-configuration
+                            (with-source {:api-username "some-username"
+                                          :api-password "some-password"})
+                            (with-specification specification1)
+                            (with-specification specification2))]
+        (is (= {:service-username "some-username"
+                :service-password "some-password"}
+              (resolve configuration)))))
+
     (testing "uses provided key functions"
       (let [configuration (define-configuration
                             (with-source

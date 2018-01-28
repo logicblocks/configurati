@@ -42,7 +42,7 @@
 
 (defrecord ConfigurationSpecification [parameters key-fn]
   Evaluatable
-  (evaluate [this configuration-source]
+  (evaluate [_ configuration-source]
     (let [evaluation-result (determine-evaluation-result
                               parameters
                               configuration-source

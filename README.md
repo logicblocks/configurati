@@ -270,9 +270,32 @@ similar to those described above:
     ...))
 ```
 
-Currently, when configuration specifications are merged as part of a definition, 
-any key functions are ignored and must be explicitly specified as part of the
-definition.
+When configuration specifications are merged as part of a definition, 
+their key functions are composed together in the order the specifications
+are provided with any key functions on the definition itself applying last:
+
+```clojure
+(def specification-1
+  (define-configuration-specification
+    (with-key-fn (fn [key] (str "s1-" (name key))))))
+    
+(def specification-2
+  (define-configuration-specification
+    (with-key-fn (fn [key] (str "s2-" (name key))))))
+    
+(def configuration
+  (define-configuration
+    (with-specification specification-1)
+    (with-specification specification-2)
+    (with-parameter :param)
+    (with-key-fn (fn [key] (keyword key)))
+    (with-key-fn (fn [key] (str "def-" (name key))))
+    (with-source (map-source {:param "val"}))))
+
+(resolve configuration)
+=>
+{:def-s1-s2-param "val"}
+```
 
 ## Advanced Usage
 
