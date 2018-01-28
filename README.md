@@ -21,7 +21,7 @@ Configurati allows sets of configuration to be defined:
   (define-configuration
     (with-source (env-source :prefix :my-service))
     (with-parameter :database-host)
-    (with-parameter :database-port :as :integer)
+    (with-parameter :database-port :type :integer)
     (with-parameter :database-schema :default "default-schema")))
 ```
 
@@ -53,7 +53,7 @@ that parameter in the provided configuration sources. Names are always
 keywords.
 
 Parameters also have options:
- * `:as`: specifies the type of the resulting value. Currently, only `:string`
+ * `:type`: specifies the type of the resulting value. Currently, only `:string`
    and `:integer` are supported although the conversions are extensible as
    detailed in the advanced usage section below. Defaults to `:string`.
  * `:nilable`: whether or not the parameter can be `nil`. Either `true` or 
@@ -68,7 +68,7 @@ The `with-parameter` function accepts all of these options:
 (def database-configuration
   (define-configuration
     (with-parameter :database-host)
-    (with-parameter :database-port :as :integer)
+    (with-parameter :database-port :type :integer)
     (with-parameter :database-scheme :default "default-schema")
     (with-parameter :database-timeout :nilable true)
     ...))
@@ -179,7 +179,7 @@ functions are provided in `configurati.key-fns`.
                    :api-port     "5000"}))
     (with-parameter :api-username)
     (with-parameter :api-password)
-    (with-parameter :api-port :as :integer)
+    (with-parameter :api-port :type :integer)
     (with-key-fn (remove-prefix :api))
     (with-key-fn (add-prefix :service))))
 
@@ -199,7 +199,7 @@ specifications can be created separately from defining configuration:
 (def database-configuration-specification
   (define-configuration-specification
     (with-parameter :database-host)
-    (with-parameter :database-port :as :integer)
+    (with-parameter :database-port :type :integer)
     (with-parameter :database-scheme :default "default-schema")))
 
 ...
@@ -222,13 +222,13 @@ specified:
 (def database-configuration-specification
   (define-configuration-specification
     (with-parameter :database-host)
-    (with-parameter :database-port :as :integer)
+    (with-parameter :database-port :type :integer)
     (with-parameter :database-scheme :default "default-schema")))
 
 (def service-configuration-specification
   (define-configuration-specification
     (with-parameter :service-host)
-    (with-parameter :service-port :as :integer)
+    (with-parameter :service-port :type :integer)
     (with-parameter :service-token)))
 
 ...
@@ -249,10 +249,10 @@ is the same as:
 (def database-configuration
   (define-configuration
     (with-parameter :database-host)
-    (with-parameter :database-port :as :integer)
+    (with-parameter :database-port :type :integer)
     (with-parameter :database-scheme :default "default-schema")
     (with-parameter :service-host)
-    (with-parameter :service-port :as :integer)
+    (with-parameter :service-port :type :integer)
     (with-parameter :service-token)
     (with-parameter :other-parameter)
     ...))
@@ -290,7 +290,7 @@ To add a parameter type, implement the `convert-to` multimethod in
 (def configuration
   (define-configuration
     (with-source (map-source {:encrypted? "true"}))
-    (with-parameter :encrypted? :as :boolean)))
+    (with-parameter :encrypted? :type :boolean)))
 
 (resolve configuration)
 =>

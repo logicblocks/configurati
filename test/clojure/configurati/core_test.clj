@@ -27,32 +27,32 @@
                          {:name    :api-username
                           :nilable false
                           :default nil
-                          :as      :string})]
+                          :type    :string})]
           (with-parameter :api-username)))
     (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable false
                           :default nil
-                          :as      :string})]
+                          :type    :string})]
           (with-parameter :api-username :nilable false)))
     (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable true
                           :default nil
-                          :as      :string})]
+                          :type    :string})]
           (with-parameter :api-username :nilable true)))
     (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable false
                           :default "username"
-                          :as      :string})]
+                          :type    :string})]
           (with-parameter :api-username :default "username")))
     (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-port
                           :nilable false
                           :default nil
-                          :as      :integer})]
-          (with-parameter :api-port :as :integer))))
+                          :type    :integer})]
+          (with-parameter :api-port :type :integer))))
 
   (testing "defaulting"
     (let [parameter (map->ConfigurationParameter
@@ -79,7 +79,7 @@
                       {:name    :api-username
                        :nilable false
                        :default nil
-                       :as      :integer})]
+                       :type    :integer})]
       (is (= {:error nil :value 5000}
             (convert parameter "5000")))
       (is (= {:error :unconvertible :value nil}
@@ -200,14 +200,14 @@
       (testing (str "returns converted parameter when type specified and value "
                  "is convertible")
         (let [specification (define-configuration-specification
-                              (with-parameter :api-port :as :integer))
+                              (with-parameter :api-port :type :integer))
               configuration-source {:api-port "5000"}]
           (is (= {:api-port 5000}
                 (evaluate specification configuration-source)))))
 
       (testing "uses custom converter when defined"
         (let [specification (define-configuration-specification
-                              (with-parameter :encrypted? :as :boolean))
+                              (with-parameter :encrypted? :type :boolean))
               configuration-source {:encrypted? "true"}]
           (is (= {:encrypted? true}
                 (evaluate specification configuration-source)))))
@@ -215,7 +215,7 @@
       (testing "throws exception when parameter fails to convert"
         (let [specification (define-configuration-specification
                               (with-parameter :api-identifier)
-                              (with-parameter :api-port :as :integer))
+                              (with-parameter :api-port :type :integer))
               configuration-source {:api-identifier "some-identifier"
                                     :api-port       "abcd"}
               exception (evaluate-and-catch
@@ -235,8 +235,8 @@
       (testing (str "throws exception with all unconvertible parameters when "
                  "multiple parameters fail to convert")
         (let [specification (define-configuration-specification
-                              (with-parameter :api-port1 :as :integer)
-                              (with-parameter :api-port2 :as :integer)
+                              (with-parameter :api-port1 :type :integer)
+                              (with-parameter :api-port2 :type :integer)
                               (with-parameter :api-group))
               configuration-source {:api-port1 "abcd"
                                     :api-port2 "efgh"
@@ -261,8 +261,8 @@
         (let [specification (define-configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
-                              (with-parameter :api-port1 :as :integer)
-                              (with-parameter :api-port2 :as :integer)
+                              (with-parameter :api-port1 :type :integer)
+                              (with-parameter :api-port2 :type :integer)
                               (with-parameter :api-group :nilable true))
               configuration-source {:api-username nil
                                     :api-password nil
@@ -288,7 +288,7 @@
       (testing "converts default"
         (let [specification (define-configuration-specification
                               (with-parameter :api-port
-                                :as :integer
+                                :type :integer
                                 :default "5000"))
               configuration-source {:api-port nil}]
           (is (= {:api-port 5000}
@@ -297,10 +297,10 @@
       (testing "nilable parameters convert correctly when nil"
         (let [specification (define-configuration-specification
                               (with-parameter :api-port
-                                :as :integer
+                                :type :integer
                                 :nilable true)
                               (with-parameter :api-host
-                                :as :string
+                                :type :string
                                 :nilable true))
               configuration-source {:api-port nil
                                     :api-host nil}]
@@ -386,7 +386,7 @@
                                             :api-port     "5000"}))
                             (with-parameter :api-username)
                             (with-parameter :api-port
-                              :as :integer))]
+                              :type :integer))]
         (is (= {:api-username "some-username"
                 :api-port     5000}
               (resolve configuration)))))
@@ -407,7 +407,7 @@
                               (with-parameter :api-username)
                               (with-parameter :api-password)
                               (with-parameter :api-port
-                                :as :integer))]
+                                :type :integer))]
           (is (= {:api-username "some-username"
                   :api-password "some-password"
                   :api-port     5000}
@@ -423,7 +423,7 @@
                                            :api-password "some-password"
                                            :api-port     "5000"}))
                             (with-specification specification)
-                            (with-parameter :api-port :as :integer))]
+                            (with-parameter :api-port :type :integer))]
         (is (= {:api-username "some-username"
                 :api-password "some-password"
                 :api-port     5000}
@@ -434,7 +434,7 @@
                              (with-parameter :api-username)
                              (with-parameter :api-password))
             specification2 (define-configuration-specification
-                             (with-parameter :api-port :as :integer))
+                             (with-parameter :api-port :type :integer))
             configuration (define-configuration
                             (with-source
                               (map-source {:api-username "some-username"
@@ -455,7 +455,7 @@
                                            :api-port     "5000"}))
                             (with-parameter :api-username)
                             (with-parameter :api-password)
-                            (with-parameter :api-port :as :integer)
+                            (with-parameter :api-port :type :integer)
                             (with-key-fn (remove-prefix :api))
                             (with-key-fn (add-prefix :service)))]
         (is (= {:service-username "some-username"

@@ -1,12 +1,16 @@
 (ns configurati.conversions)
 
-(defmulti convert-to (fn [type value] type))
+(defmulti convert-to (fn [type _] type))
 
 (defmethod convert-to :integer [_ value]
-  (if value (Integer/parseInt (str value)) nil))
+  (if (nil? value)
+    (Integer/parseInt (str value))
+    nil))
 
 (defmethod convert-to :string [_ value]
-  (if value (String/valueOf value) nil))
+  (if (nil? value)
+    (String/valueOf value)
+    nil))
 
 (defmethod convert-to :default [_ value]
   value)

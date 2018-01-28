@@ -30,8 +30,8 @@
   (->MultiConfigurationSource sources))
 
 (defn with-parameter [name & rest]
-  (let [defaults {:nilable false
-                  :as      :string}
+  (let [defaults {:nilable    false
+                  :type :string}
         base {:name name}
         options (apply hash-map rest)]
     [:parameter (map->ConfigurationParameter

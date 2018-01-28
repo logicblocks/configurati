@@ -8,5 +8,5 @@
 
 (defrecord ConfigurationDefinition [source specification]
   Resolvable
-  (resolve [this]
+  (resolve [_]
     (evaluate specification source)))
