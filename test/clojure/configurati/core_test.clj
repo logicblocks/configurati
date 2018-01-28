@@ -5,6 +5,9 @@
     [clojure.string :refer [replace]]
 
     [configurati.core :refer :all]
+    [configurati.key-fns
+     :refer [add-prefix
+             remove-prefix]]
     [configurati.parameters
      :refer [map->ConfigurationParameter
              default
@@ -309,8 +312,7 @@
         (let [specification (configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
-                              (with-key-fn
-                                #(keyword (replace (name %) "api-" ""))))
+                              (with-key-fn (remove-prefix :api)))
               configuration-source {:api-username "some-username"
                                     :api-password "some-password"}]
           (is (= {:username "some-username"
@@ -322,10 +324,8 @@
         (let [specification (configuration-specification
                               (with-parameter :api-username)
                               (with-parameter :api-password)
-                              (with-key-fn
-                                #(keyword (replace (name %) "api-" "")))
-                              (with-key-fn
-                                #(keyword (str "service-" (name %)))))
+                              (with-key-fn (remove-prefix :api))
+                              (with-key-fn (add-prefix :service)))
               configuration-source {:api-username "some-username"
                                     :api-password "some-password"}]
           (is (= {:service-username "some-username"
@@ -456,10 +456,8 @@
                             (with-parameter :api-username)
                             (with-parameter :api-password)
                             (with-parameter :api-port :as :integer)
-                            (with-key-fn
-                              #(keyword (replace (name %) "api-" "")))
-                            (with-key-fn
-                              #(keyword (str "service-" (name %)))))]
+                            (with-key-fn (remove-prefix :api))
+                            (with-key-fn (add-prefix :service)))]
         (is (= {:service-username "some-username"
                 :service-password "some-password"
                 :service-port     5000}

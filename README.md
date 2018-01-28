@@ -164,10 +164,12 @@ to how they are specified in the configuration sources. Key functions enable
 this.
 
 When a configuration is defined, one or more key functions can be provided
-allowing keys to be transformed during configuration resolution:
+allowing keys to be transformed during configuration resolution. A key 
+function receives each key and returns its replacement. A number of key 
+functions are provided in `configurati.key-fns`. 
 
 ```clojure
-(require '[clojure.string :refer [replace]])
+(require '[configurati.key-fns :refer [add-prefix remove-prefix]])
 
 (def api-configuration
   (define-configuration
@@ -178,10 +180,8 @@ allowing keys to be transformed during configuration resolution:
     (with-parameter :api-username)
     (with-parameter :api-password)
     (with-parameter :api-port :as :integer)
-    (with-key-fn
-      #(keyword (replace (name %) "api-" "")))
-    (with-key-fn
-      #(keyword (str "service-" (name %))))))
+    (with-key-fn (remove-prefix :api))
+    (with-key-fn (add-prefix :service))))
 
 (resolve api-configuration)
 =>
@@ -262,12 +262,11 @@ A configuration specification optionally takes one or more key functions
 similar to those described above:
 
 ```clojure
-(require '[clojure.string :refer [replace]])
+(require '[configurati.key-fns :refer [remove-prefix]])
 
 (def database-configuration-specification
   (configuration-specification
-    (with-key-fn 
-      #(keyword (replace (name %) "api-" "")))
+    (with-key-fn (remove-prefix :api))
     ...))
 ```
 
@@ -300,6 +299,6 @@ To add a parameter type, implement the `convert-to` multimethod in
 
 ## License
 
-Copyright © 2017 Toby Clemson
+Copyright © 2018 Toby Clemson
 
 Distributed under the MIT license.
