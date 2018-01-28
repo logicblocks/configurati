@@ -1,4 +1,4 @@
-(defproject configurati "0.2.0"
+(defproject configurati "0.3.0"
   :description "Define and resolve application configuration."
   :url "http://github.com/tobyclemson/configurati"
   :license {:name "The MIT License"
