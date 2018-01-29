@@ -8,7 +8,7 @@ Clojure library for managing application configuration.
 
 Add the following dependency to your `project.clj` file:
 
-    [configurati "0.3.0"]
+    [configurati "0.4.0"]
 
 ## Standard Usage
 
