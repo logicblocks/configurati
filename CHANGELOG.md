@@ -4,6 +4,8 @@ change log follows the conventions of
 [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
+
+## [0.5.1] — 2019-10-03
 ### Changed
 - `configurati` is now released under the `logicblocks` organisation.
 
@@ -19,4 +21,5 @@ Initial release
 
 [0.4.0]: https://github.com/logicblocks/configurati/compare/0.1.0...0.4.0
 [0.5.0]: https://github.com/logicblocks/configurati/compare/0.4.0...0.5.0
-[Unreleased]: https://github.com/logicblocks/configurati/compare/0.5.0...HEAD
+[0.5.1]: https://github.com/logicblocks/configurati/compare/0.5.0...0.5.1
+[Unreleased]: https://github.com/logicblocks/configurati/compare/0.5.1...HEAD
