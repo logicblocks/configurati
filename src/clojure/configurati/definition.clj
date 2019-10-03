@@ -10,3 +10,11 @@
   Resolvable
   (resolve [_]
     (apply merge (map #(evaluate % source) specifications))))
+
+(defrecord MergedConfigurationDefinition [definitions]
+  Resolvable
+  (resolve [_]
+    (apply merge (map #(resolve %) definitions))))
+
+(defn merge [& definitions]
+  (->MergedConfigurationDefinition definitions))

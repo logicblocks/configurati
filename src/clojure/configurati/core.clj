@@ -78,3 +78,6 @@
 
 (defn resolve [definition]
   (configurati.definition/resolve definition))
+
+(defn merge [& definitions]
+  (apply configurati.definition/merge definitions))
