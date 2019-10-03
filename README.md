@@ -8,7 +8,7 @@ Clojure library for managing application configuration.
 
 Add the following dependency to your `project.clj` file:
 
-    [configurati "0.5.1"]
+    [logicblocks/configurati "0.5.1"]
 
 ## Standard Usage
 
