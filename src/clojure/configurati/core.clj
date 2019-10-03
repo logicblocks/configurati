@@ -30,8 +30,8 @@
   (->MultiConfigurationSource sources))
 
 (defn with-parameter [name & rest]
-  (let [defaults {:nilable    false
-                  :type :string}
+  (let [defaults {:nilable false
+                  :type    :string}
         base {:name name}
         options (apply hash-map rest)]
     [:parameter (map->ConfigurationParameter
@@ -54,21 +54,27 @@
 
 (defn define-configuration [& rest]
   (let [elements (group-by #(first %) rest)
-        specifications (map second (:specification elements))
-        parameters (concat
-                     (map second (:parameter elements))
-                     (reduce (fn [parameters specification]
-                               (concat parameters (:parameters specification)))
-                       []
-                       specifications))
-        key-fn (apply comp
-                 (concat
-                   (map second (:key-fn elements))
-                   (map :key-fn specifications)))
-        sources (map second (:source elements))]
-    (->ConfigurationDefinition
-      (->MultiConfigurationSource sources)
-      (->ConfigurationSpecification parameters key-fn))))
+
+        top-level-parameters (map second (:parameter elements))
+        top-level-key-fns (map second (:key-fn elements))
+        top-level-key-fn (apply comp top-level-key-fns)
+
+        top-level-specification
+        (->ConfigurationSpecification
+          top-level-parameters top-level-key-fn)
+
+        existing-specifications (map second (:specification elements))
+        existing-specifications
+        (map (fn [{:keys [parameters key-fn]}]
+               (->ConfigurationSpecification
+                 parameters (comp top-level-key-fn key-fn)))
+          existing-specifications)
+
+        specifications (conj existing-specifications top-level-specification)
+
+        sources (map second (:source elements))
+        source (->MultiConfigurationSource sources)]
+    (->ConfigurationDefinition source specifications)))
 
 (defn resolve [definition]
   (configurati.definition/resolve definition))

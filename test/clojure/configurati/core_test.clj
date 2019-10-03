@@ -447,20 +447,22 @@
                 :api-port     5000}
               (resolve configuration)))))
 
-    (testing "composes key functions when defined on specifications"
+    (testing "scopes key functions when defined on specifications"
       (let [specification1 (define-configuration-specification
-                             (with-parameter :api-username)
-                             (with-key-fn (add-prefix :service)))
+                             (with-parameter :db-username)
+                             (with-key-fn (remove-prefix :db))
+                             (with-key-fn (add-prefix :postgres)))
             specification2 (define-configuration-specification
-                             (with-parameter :api-password)
-                             (with-key-fn (remove-prefix :api)))
+                             (with-parameter :database-password)
+                             (with-key-fn (remove-prefix :database))
+                             (with-key-fn (add-prefix :postgres)))
             configuration (define-configuration
-                            (with-source {:api-username "some-username"
-                                          :api-password "some-password"})
+                            (with-source {:db-username "some-username"
+                                          :database-password "some-password"})
                             (with-specification specification1)
                             (with-specification specification2))]
-        (is (= {:service-username "some-username"
-                :service-password "some-password"}
+        (is (= {:postgres-username "some-username"
+                :postgres-password "some-password"}
               (resolve configuration)))))
 
     (testing "uses provided key functions"

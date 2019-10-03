@@ -6,7 +6,7 @@
 (defprotocol Resolvable
   (resolve [definition]))
 
-(defrecord ConfigurationDefinition [source specification]
+(defrecord ConfigurationDefinition [source specifications]
   Resolvable
   (resolve [_]
-    (evaluate specification source)))
+    (apply merge (map #(evaluate % source) specifications))))
