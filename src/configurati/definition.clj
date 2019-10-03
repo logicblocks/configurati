@@ -1,5 +1,5 @@
 (ns configurati.definition
-  (:refer-clojure :exclude [resolve])
+  (:refer-clojure :exclude [resolve merge])
   (:require
     [configurati.specification :refer [evaluate]]))
 
@@ -9,12 +9,12 @@
 (defrecord ConfigurationDefinition [source specifications]
   Resolvable
   (resolve [_]
-    (apply merge (map #(evaluate % source) specifications))))
+    (apply clojure.core/merge (map #(evaluate % source) specifications))))
 
 (defrecord MergedConfigurationDefinition [definitions]
   Resolvable
   (resolve [_]
-    (apply merge (map #(resolve %) definitions))))
+    (apply clojure.core/merge (map resolve definitions))))
 
 (defn merge [& definitions]
   (->MergedConfigurationDefinition definitions))

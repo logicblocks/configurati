@@ -1,5 +1,5 @@
 (ns configurati.core
-  (:refer-clojure :exclude [resolve])
+  (:refer-clojure :exclude [resolve merge])
   (:require
     [configurati.definition
      :refer [->ConfigurationDefinition]]
@@ -35,7 +35,7 @@
         base {:name name}
         options (apply hash-map rest)]
     [:parameter (map->ConfigurationParameter
-                  (merge defaults base options))]))
+                  (clojure.core/merge defaults base options))]))
 
 (defn with-source [source]
   [:source source])
@@ -47,13 +47,13 @@
   [:specification specification])
 
 (defn define-configuration-specification [& rest]
-  (let [elements (group-by #(first %) rest)
+  (let [elements (group-by first rest)
         parameters (map second (:parameter elements))
         key-fn (apply comp (map second (:key-fn elements)))]
     (->ConfigurationSpecification parameters key-fn)))
 
 (defn define-configuration [& rest]
-  (let [elements (group-by #(first %) rest)
+  (let [elements (group-by first rest)
 
         top-level-parameters (map second (:parameter elements))
         top-level-key-fns (map second (:key-fn elements))

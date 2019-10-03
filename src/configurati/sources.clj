@@ -5,7 +5,8 @@
     [clojure.string :refer [join lower-case replace]]
     [clj-yaml.core :as yaml]
     [medley.core :refer [map-keys find-first]])
-  (:import [clojure.lang ILookup]))
+  (:import
+    [clojure.lang ILookup]))
 
 (defn- prefix-keyword [prefix key]
   (if prefix

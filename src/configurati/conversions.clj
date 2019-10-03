@@ -3,14 +3,10 @@
 (defmulti convert-to (fn [type _] type))
 
 (defmethod convert-to :integer [_ value]
-  (if (some? value)
-    (Integer/parseInt (str value))
-    nil))
+  (when (some? value) (Integer/parseInt (str value))))
 
 (defmethod convert-to :string [_ value]
-  (if (some? value)
-    (String/valueOf value)
-    nil))
+  (when (some? value) (String/valueOf value)))
 
 (defmethod convert-to :default [_ value]
   value)

@@ -346,12 +346,12 @@
 
   (testing "YAML file source"
     (with-redefs
-      [clojure.core/slurp (fn [path]
-                            (if (= path "path/to/config.yaml")
-                              (str
-                                "---\n"
-                                "database_username: \"some-username\"\n"
-                                "database_password: \"some-password\"\n")))]
+     [clojure.core/slurp (fn [path]
+                           (if (= path "path/to/config.yaml")
+                             (str
+                               "---\n"
+                               "database_username: \"some-username\"\n"
+                               "database_password: \"some-password\"\n")))]
       (is (= "some-username"
             (:database-username (c/yaml-file-source "path/to/config.yaml"))))
       (is (= "some-username"
@@ -363,12 +363,12 @@
 
   (testing "multi source"
     (with-redefs
-      [clojure.core/slurp (fn [path]
-                            (if (= path "path/to/config.yaml")
-                              (str
-                                "---\n"
-                                "api_username: \"some-username\"\n"
-                                "api_password: \"some-password\"\n")))]
+     [clojure.core/slurp (fn [path]
+                           (if (= path "path/to/config.yaml")
+                             (str
+                               "---\n"
+                               "api_username: \"some-username\"\n"
+                               "api_password: \"some-password\"\n")))]
       (let [source (c/multi-source
                      (c/yaml-file-source "path/to/config.yaml")
                      (c/map-source {:api-username "default-username"
@@ -393,12 +393,12 @@
 
     (testing "resolves from multiple sources"
       (with-redefs
-        [clojure.core/slurp (fn [path]
-                              (if (= path "path/to/config.yaml")
-                                (str
-                                  "---\n"
-                                  "api_username: \"some-username\"\n"
-                                  "api_password: \"some-password\"\n")))]
+       [clojure.core/slurp (fn [path]
+                             (if (= path "path/to/config.yaml")
+                               (str
+                                 "---\n"
+                                 "api_username: \"some-username\"\n"
+                                 "api_password: \"some-password\"\n")))]
         (let [configuration (c/define-configuration
                               (c/with-source
                                 (c/map-source {:api-port "5000"}))
