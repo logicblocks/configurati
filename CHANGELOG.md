@@ -4,6 +4,8 @@ change log follows the conventions of
 [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
+### Changed
+- `configurati` is now released under the `io.logicblocks` organisation.
 
 ## [0.5.1] — 2019-10-03
 ### Changed
