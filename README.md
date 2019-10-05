@@ -1,6 +1,7 @@
 # configurati
 
 [![Clojars Project](https://img.shields.io/clojars/v/io.logicblocks/configurati.svg)](https://clojars.org/io.logicblocks/configurati)
+[![Clojars Downloads](https://img.shields.io/clojars/dt/io.logicblocks/configurati.svg)](https://clojars.org/io.logicblocks/configurati)
 
 Clojure library for managing application configuration.
 
