@@ -1,7 +1,7 @@
 (ns configurati.key-fns
   (:refer-clojure :exclude [replace])
   (:require
-    [clojure.string :refer [replace]]))
+   [clojure.string :refer [replace]]))
 
 (defn remove-prefix [prefix]
   (fn [key] (keyword (replace (name key) (str (name prefix) "-") ""))))

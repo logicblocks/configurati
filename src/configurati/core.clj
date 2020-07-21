@@ -1,59 +1,59 @@
 (ns configurati.core
   (:refer-clojure :exclude [resolve merge])
   (:require
-    [configurati.definition
-     :refer [->ConfigurationDefinition]]
-    [configurati.parameters
-     :refer [map->ConfigurationParameter]]
-    [configurati.sources
-     :refer [->MapConfigurationSource
-             ->EnvConfigurationSource
-             ->YamlFileConfigurationSource
-             ->MultiConfigurationSource]]
-    [configurati.specification
-     :refer [->ConfigurationSpecification]]))
+   [configurati.definition
+    :refer [->ConfigurationDefinition]]
+   [configurati.parameters
+    :refer [map->ConfigurationParameter]]
+   [configurati.sources
+    :refer [->MapConfigurationSource
+            ->EnvConfigurationSource
+            ->YamlFileConfigurationSource
+            ->MultiConfigurationSource]]
+   [configurati.specification
+    :refer [->ConfigurationSpecification]]))
 
-(defn map-source [map]
-  (->MapConfigurationSource map))
+(defn map-source [m]
+  (->MapConfigurationSource m))
 
-(defn env-source [& rest]
-  (let [options (apply hash-map rest)
+(defn env-source [& args]
+  (let [options (apply hash-map args)
         prefix (:prefix options)]
     (->EnvConfigurationSource prefix)))
 
-(defn yaml-file-source [path & rest]
-  (let [options (apply hash-map rest)
+(defn yaml-file-source [path & args]
+  (let [options (apply hash-map args)
         prefix (:prefix options)]
     (->YamlFileConfigurationSource path prefix)))
 
 (defn multi-source [& sources]
   (->MultiConfigurationSource sources))
 
-(defn with-parameter [name & rest]
+(defn with-parameter [parameter-name & args]
   (let [defaults {:nilable false
                   :type    :string}
-        base {:name name}
-        options (apply hash-map rest)]
+        base {:name parameter-name}
+        options (apply hash-map args)]
     [:parameter (map->ConfigurationParameter
                   (clojure.core/merge defaults base options))]))
 
 (defn with-source [source]
   [:source source])
 
-(defn with-key-fn [fn]
-  [:key-fn fn])
+(defn with-key-fn [f]
+  [:key-fn f])
 
 (defn with-specification [specification]
   [:specification specification])
 
-(defn define-configuration-specification [& rest]
-  (let [elements (group-by first rest)
+(defn define-configuration-specification [& args]
+  (let [elements (group-by first args)
         parameters (map second (:parameter elements))
         key-fn (apply comp (map second (:key-fn elements)))]
     (->ConfigurationSpecification parameters key-fn)))
 
-(defn define-configuration [& rest]
-  (let [elements (group-by first rest)
+(defn define-configuration [& args]
+  (let [elements (group-by first args)
 
         top-level-parameters (map second (:parameter elements))
         top-level-key-fns (map second (:key-fn elements))

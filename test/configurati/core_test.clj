@@ -1,21 +1,21 @@
 (ns configurati.core-test
   (:refer-clojure :exclude [replace resolve])
   (:require
-    [clojure.test :refer :all]
-    [clojure.string :refer [replace]]
+   [clojure.test :refer :all]
+   [clojure.string :refer [replace]]
 
-    [configurati.core :as c]
-    [configurati.key-fns
-     :refer [add-prefix
-             remove-prefix]]
-    [configurati.parameters
-     :refer [map->ConfigurationParameter
-             default
-             validate
-             convert]]
-    [configurati.specification
-     :refer [evaluate]]
-    [configurati.conversions :refer [convert-to]])
+   [configurati.core :as c]
+   [configurati.key-fns
+    :refer [add-prefix
+            remove-prefix]]
+   [configurati.parameters
+    :refer [map->ConfigurationParameter
+            default
+            validate
+            convert]]
+   [configurati.specification
+    :refer [evaluate]]
+   [configurati.conversions :refer [convert-to]])
   (:import [clojure.lang ExceptionInfo]))
 
 (defmethod convert-to :boolean [_ value]

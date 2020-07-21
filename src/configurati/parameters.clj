@@ -1,6 +1,6 @@
 (ns configurati.parameters
   (:require
-    [configurati.conversions :refer [convert-to]]))
+   [configurati.conversions :refer [convert-to]]))
 
 (defn- missing? [parameter value]
   (and
@@ -12,7 +12,8 @@
   (default [parameter value])
   (convert [parameter value]))
 
-(defrecord ConfigurationParameter [name nilable default type]
+(defrecord ConfigurationParameter
+  [name nilable default type]
   Processable
   (validate [this value]
     (cond

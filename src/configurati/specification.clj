@@ -1,6 +1,6 @@
 (ns configurati.specification
   (:require
-    [configurati.parameters :refer [default validate convert]]))
+   [configurati.parameters :refer [default validate convert]]))
 
 (defprotocol Evaluatable
   (evaluate [configuration-specification configuration-source]))
@@ -16,17 +16,17 @@
     (empty? (:missing evaluation-result))
     (empty? (:unconvertible evaluation-result))))
 
-(defn- with-error [evaluation-result name error-type]
-  (update-in evaluation-result [error-type] #(conj % name)))
+(defn- with-error [evaluation-result parameter-name error-type]
+  (update-in evaluation-result [error-type] #(conj % parameter-name)))
 
-(defn- with-value [evaluation-result name value]
-  (update-in evaluation-result [:evaluated] #(assoc % name value)))
+(defn- with-value [evaluation-result parameter-name value]
+  (update-in evaluation-result [:evaluated] #(assoc % parameter-name value)))
 
 (defn- determine-evaluation-result [parameters configuration-source key-fn]
   (reduce
     (fn [evaluation-result parameter]
-      (let [name (:name parameter)
-            initial (name configuration-source)
+      (let [parameter-name (:name parameter)
+            initial (parameter-name configuration-source)
             defaulted (default parameter initial)
             validity (validate parameter defaulted)
             conversion (convert parameter defaulted)
@@ -34,13 +34,19 @@
             validation-error (:error validity)
             conversion-error (:error conversion)]
         (cond
-          validation-error (with-error evaluation-result name validation-error)
-          conversion-error (with-error evaluation-result name conversion-error)
-          :default (with-value evaluation-result (key-fn name) converted))))
+          validation-error
+          (with-error evaluation-result parameter-name validation-error)
+
+          conversion-error
+          (with-error evaluation-result parameter-name conversion-error)
+
+          :default
+          (with-value evaluation-result (key-fn parameter-name) converted))))
     (evaluation-result configuration-source)
     parameters))
 
-(defrecord ConfigurationSpecification [parameters key-fn]
+(defrecord ConfigurationSpecification
+  [parameters key-fn]
   Evaluatable
   (evaluate [_ configuration-source]
     (let [evaluation-result (determine-evaluation-result
