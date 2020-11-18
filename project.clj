@@ -27,6 +27,8 @@
    {:dependencies [[org.clojure/clojure "1.10.1"]
                    [org.clojure/tools.trace "0.7.10"]
 
+                   [cheshire "5.10.0"]
+
                    [nrepl "0.7.0"]
 
                    [eftest "0.5.9"]]}

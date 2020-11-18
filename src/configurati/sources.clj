@@ -55,6 +55,14 @@
     (let [contents (read-yaml-configuration-file path)]
       (get contents (prefix-keyword prefix parameter-name) default))))
 
+(deftype FnConfigurationSource
+  [fn]
+  ILookup
+  (valAt [_ parameter-name]
+    (fn parameter-name))
+  (valAt [_ parameter-name default]
+    (or (fn parameter-name) default)))
+
 (deftype MultiConfigurationSource
   [sources]
   ILookup

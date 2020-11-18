@@ -4,6 +4,8 @@
    [clojure.test :refer :all]
    [clojure.string :refer [replace]]
 
+   [cheshire.core :as json]
+
    [configurati.core :as c]
    [configurati.key-fns
     :refer [add-prefix
@@ -479,6 +481,39 @@
         (is (= {:service-username "some-username"
                 :service-password "some-password"
                 :service-port     5000}
+              (c/resolve configuration)))))
+
+    (testing "applies source middleware before resolution"
+      (let [json-parsing-middleware
+            (fn [source parameter-name]
+              (let [parameter-value (get source parameter-name)]
+                (json/parse-string parameter-value true)))
+
+            password-masking-middleware
+            (fn [source parameter-name]
+              (let [parameter-value (get source parameter-name)]
+                (if (= parameter-name :api-credentials)
+                  (assoc parameter-value
+                    :pass (apply str
+                            (take (count (:pass parameter-value))
+                              (repeat "*"))))
+                  parameter-value)))
+
+            configuration
+            (c/define-configuration
+              (c/with-source
+                (c/map-source
+                  {:api-credentials
+                   "{\"user\": \"james\",\"pass\": \"X4ftRd32\"}"
+                   :api-timeout
+                   "10000"})
+                (c/with-middleware json-parsing-middleware)
+                (c/with-middleware password-masking-middleware))
+              (c/with-parameter :api-credentials :type :map)
+              (c/with-parameter :api-timeout :type :integer))]
+        (is (= {:api-timeout     10000
+                :api-credentials {:user "james"
+                                  :pass "********"}}
               (c/resolve configuration))))))
 
   (testing "merge"
@@ -541,15 +576,15 @@
             configuration-2 (c/define-configuration
                               (c/with-source
                                 (c/map-source
-                                  {:db-username  "db-username"
-                                   :db-password  "db-password"}))
+                                  {:db-username "db-username"
+                                   :db-password "db-password"}))
                               (c/with-parameter :db-username)
                               (c/with-parameter :db-password)
                               (c/with-key-fn (remove-prefix :db))
                               (c/with-key-fn (add-prefix :database)))
             merged (c/merge configuration-1 configuration-2)]
-        (is (= {:service-username "api-username"
-                :service-password "api-password"
-                :database-username  "db-username"
-                :database-password  "db-password"}
+        (is (= {:service-username  "api-username"
+                :service-password  "api-password"
+                :database-username "db-username"
+                :database-password "db-password"}
               (c/resolve merged)))))))

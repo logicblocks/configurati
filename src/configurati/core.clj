@@ -9,6 +9,7 @@
     :refer [->MapConfigurationSource
             ->EnvConfigurationSource
             ->YamlFileConfigurationSource
+            ->FnConfigurationSource
             ->MultiConfigurationSource]]
    [configurati.specification
     :refer [->ConfigurationSpecification]]))
@@ -16,14 +17,12 @@
 (defn map-source [m]
   (->MapConfigurationSource m))
 
-(defn env-source [& args]
-  (let [options (apply hash-map args)
-        prefix (:prefix options)]
+(defn env-source [& {:as options}]
+  (let [prefix (:prefix options)]
     (->EnvConfigurationSource prefix)))
 
-(defn yaml-file-source [path & args]
-  (let [options (apply hash-map args)
-        prefix (:prefix options)]
+(defn yaml-file-source [path & {:as options}]
+  (let [prefix (:prefix options)]
     (->YamlFileConfigurationSource path prefix)))
 
 (defn multi-source [& sources]
@@ -37,8 +36,18 @@
     [:parameter (map->ConfigurationParameter
                   (clojure.core/merge defaults base options))]))
 
-(defn with-source [source]
-  [:source source])
+(defn with-middleware [middleware]
+  (fn [source]
+    (->FnConfigurationSource (partial middleware source))))
+
+(defn with-source
+  ([source] [:source source])
+  ([source & middleware-fns]
+   [:source (reduce
+              (fn [source middleware-fn]
+                (middleware-fn source))
+              source
+              middleware-fns)]))
 
 (defn with-key-fn [f]
   [:key-fn f])
