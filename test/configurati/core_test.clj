@@ -17,7 +17,11 @@
             convert]]
    [configurati.specification
     :refer [evaluate]]
-   [configurati.conversions :refer [convert-to]])
+   [configurati.conversions :refer [convert-to]]
+   [configurati.middleware
+    :refer [json-parsing-middleware
+            separator-parsing-middleware]]
+   [clojure.string :as string])
   (:import [clojure.lang ExceptionInfo]))
 
 (defmethod convert-to :boolean [_ value]
@@ -379,6 +383,153 @@
         (is (= "5000" (:api-port source)))
         (is (= nil (:api-host source)))))))
 
+(deftest configuration-source-middleware
+  (testing "JSON parsing middleware"
+    (testing "by default applies to all parameters"
+      (let [issuer-1-value {:url      "https://issuer-1.example.com"
+                            :audience "https://service-1.example.com"}
+            issuer-2-value {:url      "https://issuer-2.example.com"
+                            :audience "https://service-2.example.com"}
+            source (c/map-source
+                     {:issuer-1 (json/generate-string issuer-1-value)
+                      :issuer-2 (json/generate-string issuer-2-value)})
+
+            middleware (json-parsing-middleware)
+
+            parameter-1-value (middleware source :issuer-1)
+            parameter-2-value (middleware source :issuer-2)]
+        (is (= issuer-1-value parameter-1-value))
+        (is (= issuer-2-value parameter-2-value))))
+
+    (testing "passes through nil value when parameter not available in source"
+      (let [source (c/map-source
+                     {:issuer
+                      (json/generate-string
+                        {:url      "https://issuer-1.example.com"
+                         :audience "https://service-1.example.com"})})
+
+            middleware (json-parsing-middleware)
+
+            parameter-value (middleware source :other)]
+        (is (nil? parameter-value))))
+
+    (testing "when applied to specific parameters"
+      (let [issuer-value {:url      "https://issuer-1.example.com"
+                          :audience "https://service-1.example.com"}
+            timeout-value 10000
+
+            source (c/map-source
+                     {:issuer  (json/generate-string issuer-value)
+                      :timeout timeout-value})
+
+            middleware (json-parsing-middleware
+                         {:only [:issuer]})
+
+            issuer-parameter-value (middleware source :issuer)
+            timeout-parameter-value (middleware source :timeout)]
+        (is (= issuer-value issuer-parameter-value))
+        (is (= timeout-value timeout-parameter-value))))
+
+    (testing "when using a specific JSON parser"
+      (let [json-parser (fn [value] (json/parse-string value false))
+
+            source (c/map-source
+                     {:issuer (json/generate-string
+                                {:url      "https://issuer-1.example.com"
+                                 :audience "https://service-1.example.com"})})
+
+            middleware (json-parsing-middleware
+                         {:parse-fn json-parser})
+
+            parameter-value (middleware source :issuer)]
+        (is (= {"url"      "https://issuer-1.example.com"
+                "audience" "https://service-1.example.com"}
+              parameter-value))))
+
+    (testing "when using a specific key function"
+      (let [key-fn (fn [key] (keyword (str (name key) "-modified")))
+
+            source (c/map-source
+                     {:issuer (json/generate-string
+                                {:url      "https://issuer-1.example.com"
+                                 :audience "https://service-1.example.com"})})
+
+            middleware (json-parsing-middleware
+                         {:key-fn key-fn})
+
+            parameter-value (middleware source :issuer)]
+        (is (= {:url-modified      "https://issuer-1.example.com"
+                :audience-modified "https://service-1.example.com"}
+              parameter-value)))))
+
+  (testing "separator parsing middleware"
+    (testing "by default applies to all parameters on comma"
+      (let [source (c/map-source
+                     {:countries "usa, uk, germany"
+                      :roles     "admin,support"})
+
+            middleware (separator-parsing-middleware)
+
+            countries-parameter-value (middleware source :countries)
+            roles-parameter-value (middleware source :roles)]
+        (is (= ["usa" "uk" "germany"] countries-parameter-value))
+        (is (= ["admin" "support"] roles-parameter-value))))
+
+    (testing "passes through nil value when parameter not available in source"
+      (let [source (c/map-source
+                     {:countries "usa,uk,germany"})
+
+            middleware (separator-parsing-middleware)
+
+            parameter-value (middleware source :other)]
+        (is (nil? parameter-value))))
+
+    (testing "when applied to specific parameters"
+      (let [source (c/map-source
+                     {:client    "Company, UK"
+                      :countries "usa,uk,germany"})
+
+            middleware (separator-parsing-middleware
+                         {:only [:countries]})
+
+            client-parameter-value (middleware source :client)
+            countries-parameter-value (middleware source :countries)]
+        (is (= ["usa" "uk" "germany"] countries-parameter-value))
+        (is (= "Company, UK" client-parameter-value))))
+
+    (testing "when using a specific parser"
+      (let [parse-fn (fn [value]
+                       (string/split value #"\d"))
+
+            source (c/map-source
+                     {:countries "usa1uk2germany"})
+
+            middleware (separator-parsing-middleware
+                         {:parse-fn parse-fn})
+
+            parameter-value (middleware source :countries)]
+        (is (= ["usa" "uk" "germany"] parameter-value))))
+
+    (testing "when using a specific separator"
+      (let [source (c/map-source
+                     {:countries "usa|uk|germany"})
+
+            middleware (separator-parsing-middleware
+                         {:separator "|"})
+
+            parameter-value (middleware source :countries)]
+        (is (= ["usa" "uk" "germany"] parameter-value))))
+
+    (testing "when disabling trimming"
+      (let [source (c/map-source
+                     {:countries " usa , uk , germany "})
+
+            middleware (separator-parsing-middleware
+                         {:trim false})
+
+            parameter-value (middleware source :countries)]
+        (is (= [" usa " " uk " " germany "] parameter-value))))))
+
 (deftest configuration-definition
   (testing "resolve"
     (testing "resolves all parameters in the specification"
@@ -484,12 +635,7 @@
               (c/resolve configuration)))))
 
     (testing "applies source middleware before resolution"
-      (let [json-parsing-middleware
-            (fn [source parameter-name]
-              (let [parameter-value (get source parameter-name)]
-                (json/parse-string parameter-value true)))
-
-            password-masking-middleware
+      (let [password-masking-middleware
             (fn [source parameter-name]
               (let [parameter-value (get source parameter-name)]
                 (if (= parameter-name :api-credentials)
@@ -507,7 +653,7 @@
                    "{\"user\": \"james\",\"pass\": \"X4ftRd32\"}"
                    :api-timeout
                    "10000"})
-                (c/with-middleware json-parsing-middleware)
+                (c/with-middleware (json-parsing-middleware))
                 (c/with-middleware password-masking-middleware))
               (c/with-parameter :api-credentials :type :map)
               (c/with-parameter :api-timeout :type :integer))]

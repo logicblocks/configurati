@@ -19,15 +19,14 @@
 
   :dependencies [[environ "1.1.0"]
                  [clj-yaml "0.4.0"]
-                 [medley "1.0.0"]]
+                 [medley "1.0.0"]
+                 [cheshire "5.10.0"]]
 
   :profiles
   {:shared
    ^{:pom-scope :test}
    {:dependencies [[org.clojure/clojure "1.10.1"]
                    [org.clojure/tools.trace "0.7.10"]
-
-                   [cheshire "5.10.0"]
 
                    [nrepl "0.7.0"]
 
