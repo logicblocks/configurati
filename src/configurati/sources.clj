@@ -56,12 +56,12 @@
       (get contents (prefix-keyword prefix parameter-name) default))))
 
 (deftype FnConfigurationSource
-  [fn]
+  [source-fn]
   ILookup
   (valAt [_ parameter-name]
-    (fn parameter-name))
+    (source-fn parameter-name))
   (valAt [_ parameter-name default]
-    (or (fn parameter-name) default)))
+    (or (source-fn parameter-name) default)))
 
 (deftype MultiConfigurationSource
   [sources]
