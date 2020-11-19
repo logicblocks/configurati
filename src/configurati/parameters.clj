@@ -5,13 +5,13 @@
    [configurati.conversions :refer [convert-to]]))
 
 (defn- invalid-reason [parameter value]
-  (if-let [spec (:spec parameter)]
-    (spec/explain-data spec value)
+  (if-let [validator (:validator parameter)]
+    (spec/explain-data validator value)
     nil))
 
 (defn- invalid? [parameter value]
-  (if-let [spec (:spec parameter)]
-    (not (spec/valid? spec value))
+  (if-let [validator (:validator parameter)]
+    (not (spec/valid? validator value))
     false))
 
 (defn- missing? [parameter value]
@@ -21,20 +21,18 @@
     (not (:nilable parameter))))
 
 (defprotocol Processable
-  (validate [parameter value])
+  (check [parameter value])
   (default [parameter value])
-  (convert [parameter value]))
+  (convert [parameter value])
+  (validate [parameter value]))
 
 (defrecord ConfigurationParameter
-  [name nilable default type spec]
+  [name nilable default type validator]
   Processable
-  (validate [this value]
+  (check [this value]
     (cond
       (missing? this value) {:error :missing
                              :value value}
-      (invalid? this value) {:error  :invalid
-                             :value  value
-                             :reason (invalid-reason this value)}
       :else {:error nil
              :value value}))
   (default [_ value]
@@ -43,4 +41,11 @@
     (try
       {:error nil :value (convert-to type value)}
       (catch Exception _
-        {:error :unconvertible :value nil}))))
+        {:error :unconvertible :value nil})))
+  (validate [this value]
+    (cond
+      (invalid? this value) {:error  :invalid
+                             :value  value
+                             :reason (invalid-reason this value)}
+      :else {:error nil
+             :value value})))

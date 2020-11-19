@@ -14,8 +14,9 @@
    [configurati.parameters
     :refer [map->ConfigurationParameter
             default
-            validate
-            convert]]
+            check
+            convert
+            validate]]
    [configurati.specification
     :refer [evaluate]]
    [configurati.conversions :refer [convert-to]]
@@ -73,26 +74,13 @@
                        :default nil})]
       (is (= nil (default parameter nil)))))
 
-  (testing "validation"
-    (testing "for nilable"
-      (let [parameter (map->ConfigurationParameter
-                        {:name :api-username :nilable false :default nil})]
-        (is (= {:error :missing :value nil}
-              (validate parameter nil)))
-        (is (= {:error nil :value "username"}
-              (validate parameter "username")))))
-
-    (testing "for spec"
-      (let [spec (fn [value] (>= (count value) 8))
-            parameter (map->ConfigurationParameter
-                        {:name :api-username :spec spec})]
-        (is (= {:error  :invalid
-                :value  "user"
-                :reason (spec/explain-data spec "user")}
-              (validate parameter "user")))
-        (is (= {:error nil
-                :value "username"}
-              (validate parameter "username"))))))
+  (testing "checking"
+    (let [parameter (map->ConfigurationParameter
+                      {:name :api-username :nilable false :default nil})]
+      (is (= {:error :missing :value nil}
+            (check parameter nil)))
+      (is (= {:error nil :value "username"}
+            (check parameter "username")))))
 
   (testing "conversion"
     (let [parameter (map->ConfigurationParameter
@@ -103,7 +91,19 @@
       (is (= {:error nil :value 5000}
             (convert parameter "5000")))
       (is (= {:error :unconvertible :value nil}
-            (convert parameter "abcd"))))))
+            (convert parameter "abcd")))))
+
+  (testing "validation"
+    (let [validator (fn [value] (>= (count value) 8))
+          parameter (map->ConfigurationParameter
+                      {:name :api-username :validator validator})]
+      (is (= {:error  :invalid
+              :value  "user"
+              :reason (spec/explain-data validator "user")}
+            (validate parameter "user")))
+      (is (= {:error nil
+              :value "username"}
+            (validate parameter "username"))))))
 
 (deftest configuration-specifications
   (testing "evaluate"
@@ -146,10 +146,10 @@
                 (ex-data exception)))))
 
       (testing "throws exception when parameter does not match spec"
-        (let [spec (fn [value] (>= (count value) 8))
+        (let [validator (fn [value] (>= (count value) 8))
               specification
               (c/define-configuration-specification
-                (c/with-parameter :api-username :spec spec)
+                (c/with-parameter :api-username :validator validator)
                 (c/with-parameter :api-password :nilable false)
                 (c/with-parameter :api-group :nilable true))
               configuration-source {:api-username "user"
@@ -167,7 +167,7 @@
                   :invalid       [:api-username]
                   :unconvertible []
                   :reasons       {:api-username
-                                  (spec/explain-data spec "user")}
+                                  (spec/explain-data validator "user")}
                   :original      configuration-source
                   :evaluated     (select-keys configuration-source
                                    [:api-password :api-group])}
@@ -202,11 +202,11 @@
 
       (testing (str "throws exception with all invalid parameters when "
                  "multiple do not match spec")
-        (let [spec (fn [value] (>= (count value) 8))
+        (let [validator (fn [value] (>= (count value) 8))
               specification
               (c/define-configuration-specification
-                (c/with-parameter :api-username :spec spec)
-                (c/with-parameter :api-password :spec spec)
+                (c/with-parameter :api-username :validator validator)
+                (c/with-parameter :api-password :validator validator)
                 (c/with-parameter :api-group :nilable true))
               configuration-source {:api-username "user"
                                     :api-password "pass"
@@ -224,9 +224,9 @@
                                   :api-password]
                   :unconvertible []
                   :reasons       {:api-username
-                                  (spec/explain-data spec "user")
+                                  (spec/explain-data validator "user")
                                   :api-password
-                                  (spec/explain-data spec "pass")}
+                                  (spec/explain-data validator "pass")}
                   :original      configuration-source
                   :evaluated     (select-keys configuration-source
                                    [:api-group])}

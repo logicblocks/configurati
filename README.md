@@ -60,6 +60,8 @@ Parameters also have options:
    detailed in the advanced usage section below. Defaults to `:string`.
  * `:nilable`: whether or not the parameter can be `nil`. Either `true` or 
    `false`. Defaults to `false`.
+ * `:validator`: specifies a validator function or keyword referencing a spec 
+   to validate the parameter against. Validation occurs post-conversion.
  * `:default`: the default value to use in the case that no configuration 
    source contains this parameter. The default value is converted before being
    returned. Defaults to `nil`.
@@ -72,7 +74,8 @@ The `with-parameter` function accepts all of these options:
     (with-parameter :database-host)
     (with-parameter :database-port :type :integer)
     (with-parameter :database-scheme :default "default-schema")
-    (with-parameter :database-timeout :nilable true)
+    (with-parameter :database-timeout 
+      :type :integer :nilable true :validator #(<= % 30000))
     ...))
 ```
 
@@ -158,6 +161,183 @@ order the sources are specified at construction.
 Note, if multiple sources are provided to `define-configuration`, a 
 `multi-source` is automatically created in the background passing the sources
 in the same order as they are provided.
+
+### Source Middleware
+
+Sources support middleware allowing parameter keys to be transformed before 
+they are passed to the source and parameter values to be transformed before
+they are returned.
+
+Configurati includes a number of parameter value transforming middlewares 
+as detailed in the subsequent sections.
+
+#### json-parsing-middleware
+
+`json-parsing-middleware` parses parameter values as JSON. It allows 
+configuration of:
+ * which parameters to target;
+ * how to perform the parsing.
+ 
+By default, `json-parsing-middleware` parses all parameter values retrieved
+from the source, converting keys to keywords but not changing their casing:
+
+```clojure
+(def issuer-configuration
+  (define-configuration
+    (with-source
+      (map-source 
+        {:issuer-1 "{\"url\": \"https://issuer-1.example.com\"}"
+         :issuer-2 "{\"url\": \"https://issuer-2.example.com\"}"})
+      (with-middleware (json-parsing-middleware)))
+    (with-parameter :issuer-1)
+    (with-parameter :issuer-2)))
+```
+
+which resolves to:
+
+```clojure
+(resolve issuer-configuration)
+; =>
+; {:issuer-1 {:url "https://issuer-1.example.com"}
+;  :issuer-2 {:url "https://issuer-2.example.com"}}
+```
+
+To convert only certain parameters, pass their parameter keys in the `:only` 
+option:
+
+```clojure
+(def issuer-configuration
+  (define-configuration
+    (with-source
+      (map-source 
+        {:issuer "{\"url\": \"https://issuer-1.example.com\"}"
+         :timeout 10000})
+       (with-middleware 
+         (json-parsing-middleware
+           :only [:issuer])))
+    (with-parameter :issuer)
+    (with-parameter :timeout)))
+```
+
+which resolves to:
+
+```clojure
+(resolve issuer-configuration)
+; =>
+; {:issuer {:url "https://issuer-1.example.com"}
+;  :timeout 10000}
+```
+
+To configure parsing, there are two options available: 
+ * `:key-fn` replaces the function used to convert keys in the resulting map; 
+ * `:parse-fn` replaces the entire JSON parsing function.
+
+For example, to kebab case keys:
+
+```clojure
+(require '[camel-snake-kebab.core :as csk])
+
+(def issuer-configuration
+  (define-configuration
+    (with-source
+      (map-source 
+        {:authentication "{\"issuerUrl\": \"https://issuer-1.example.com\"}"})
+       (with-middleware 
+         (json-parsing-middleware
+           :key-fn csk/kebab-case-keyword)))
+    (with-parameter :authentication)))
+```
+
+which resolves to:
+
+```clojure
+(resolve issuer-configuration)
+; =>
+; {:authentication {:issuer-url "https://issuer-1.example.com"}}
+```
+
+#### separator-parsing-middleware
+
+`separator-parsing-middleware` splits parameter values on a separator. It allows 
+configuration of:
+ * which parameters to target;
+ * how to perform the parsing.
+ 
+By default, `separator-parsing-middleware` parses all parameter values retrieved
+from the source, splitting on comma:
+
+```clojure
+(def supplier-configuration
+  (define-configuration
+    (with-source
+      (map-source 
+        {:countries "USA,GBR,DEU"
+         :currencies "USD,GBP,EUR"})
+      (with-middleware (separator-parsing-middleware)))
+    (with-parameter :countries)
+    (with-parameter :currencies)))
+```
+
+which resolves to:
+
+```clojure
+(resolve issuer-configuration)
+; =>
+; {:countries ["USA" "GBR" "DEU"]
+;  :currencies ["USD" "GBP" "EUR"]}
+```
+
+```clojure
+(def supplier-configuration
+  (define-configuration
+    (with-source
+      (map-source 
+        {:countries "USA,GBR,DEU"
+         :name "Supplier, Ltd."})
+      (with-middleware (separator-parsing-middleware)))
+    (with-parameter :countries)
+    (with-parameter :currencies)))
+```
+
+which resolves to:
+
+```clojure
+(resolve issuer-configuration)
+; =>
+; {:countries ["USA" "GBR" "DEU"]
+;  :name "Supplier, Ltd."}
+```
+
+To configure parsing, there are three options available: 
+ * `:separator` defines the character on which to split, defaulting to `","`;
+ * `:trim` indicates whether to trim the split values, defaulting to 
+   `true`;
+ * `:parse-fn` which replaces the entire parsing function, ignoring the above
+   two options.
+
+For example, to split on pipe characters:
+
+```clojure
+(require '[camel-snake-kebab.core :as csk])
+
+(def supplier-configuration
+  (define-configuration
+    (with-source
+      (map-source 
+        {:countries "USA|GBR|DEU"})
+       (with-middleware 
+         (separator-parsing-middleware
+           :separator "|")))
+    (with-parameter :countries)))
+```
+
+which resolves to:
+
+```clojure
+(resolve supplier-configuration)
+; =>
+; {:countries ["USA" "GBR" "DEU"]}
+```
 
 ### Key Functions
 
@@ -322,8 +502,22 @@ To add a parameter type, implement the `convert-to` multimethod in
 {:encrypted? true}
 ```
 
+### Custom middleware
+
+To create a custom middleware, create a function that returns a function as
+follows:
+
+```clojure
+(defn custom-middleware []
+  (fn [source parameter-name]
+   ...))
+```
+
+Within the body of the returned function, call `source` with `parameter-name`
+or a derivative, transform and return the response.
+
 ## License
 
-Copyright © 2018 Toby Clemson
+Copyright © 2020 LogicBlocks
 
 Distributed under the MIT license.

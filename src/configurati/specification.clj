@@ -1,6 +1,6 @@
 (ns configurati.specification
   (:require
-   [configurati.parameters :refer [default validate convert]]))
+   [configurati.parameters :refer [default check convert validate]]))
 
 (defprotocol Evaluatable
   (evaluate [configuration-specification configuration-source]))
@@ -37,17 +37,22 @@
       (let [parameter-name (:name parameter)
             initial (parameter-name configuration-source)
             defaulted (default parameter initial)
-            validity (validate parameter defaulted)
+            inspection (check parameter defaulted)
             conversion (convert parameter defaulted)
             converted (:value conversion)
-            validation-error (select-keys validity [:error :reason])
-            conversion-error (select-keys conversion [:error])]
+            validation (validate parameter converted)
+            inspection-error (select-keys inspection [:error :reason])
+            conversion-error (select-keys conversion [:error])
+            validation-error (select-keys validation [:error :reason])]
         (cond
-          (:error validation-error)
-          (with-error evaluation-result parameter-name validation-error)
+          (:error inspection-error)
+          (with-error evaluation-result parameter-name inspection-error)
 
           (:error conversion-error)
           (with-error evaluation-result parameter-name conversion-error)
+
+          (:error validation-error)
+          (with-error evaluation-result parameter-name validation-error)
 
           :default
           (with-value evaluation-result (key-fn parameter-name) converted))))
