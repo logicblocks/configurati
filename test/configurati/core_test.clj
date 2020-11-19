@@ -3,6 +3,7 @@
   (:require
    [clojure.test :refer :all]
    [clojure.string :refer [replace]]
+   [clojure.spec.alpha :as spec]
 
    [cheshire.core :as json]
 
@@ -73,12 +74,25 @@
       (is (= nil (default parameter nil)))))
 
   (testing "validation"
-    (let [parameter (map->ConfigurationParameter
-                      {:name :api-username :nilable false :default nil})]
-      (is (= {:error :missing :value nil}
-            (validate parameter nil)))
-      (is (= {:error nil :value "username"}
-            (validate parameter "username")))))
+    (testing "for nilable"
+      (let [parameter (map->ConfigurationParameter
+                        {:name :api-username :nilable false :default nil})]
+        (is (= {:error :missing :value nil}
+              (validate parameter nil)))
+        (is (= {:error nil :value "username"}
+              (validate parameter "username")))))
+
+    (testing "for spec"
+      (let [spec (fn [value] (>= (count value) 8))
+            parameter (map->ConfigurationParameter
+                        {:name :api-username :spec spec})]
+        (is (= {:error  :invalid
+                :value  "user"
+                :reason (spec/explain-data spec "user")}
+              (validate parameter "user")))
+        (is (= {:error nil
+                :value "username"}
+              (validate parameter "username"))))))
 
   (testing "conversion"
     (let [parameter (map->ConfigurationParameter
@@ -119,10 +133,41 @@
           (is (= ExceptionInfo (type exception)))
           (is (= (str "Configuration evaluation failed. "
                    "Missing parameters: [:api-username], "
+                   "invalid parameters: [], "
                    "unconvertible parameters: [].")
                 (.getMessage exception)))
           (is (= {:missing       [:api-username]
+                  :invalid       []
                   :unconvertible []
+                  :reasons       {}
+                  :original      configuration-source
+                  :evaluated     (select-keys configuration-source
+                                   [:api-password :api-group])}
+                (ex-data exception)))))
+
+      (testing "throws exception when parameter does not match spec"
+        (let [spec (fn [value] (>= (count value) 8))
+              specification
+              (c/define-configuration-specification
+                (c/with-parameter :api-username :spec spec)
+                (c/with-parameter :api-password :nilable false)
+                (c/with-parameter :api-group :nilable true))
+              configuration-source {:api-username "user"
+                                    :api-password "some-password"
+                                    :api-group    nil}
+              exception (evaluate-and-catch
+                          specification configuration-source)]
+          (is (= ExceptionInfo (type exception)))
+          (is (= (str "Configuration evaluation failed. "
+                   "Missing parameters: [], "
+                   "invalid parameters: [:api-username], "
+                   "unconvertible parameters: [].")
+                (.getMessage exception)))
+          (is (= {:missing       []
+                  :invalid       [:api-username]
+                  :unconvertible []
+                  :reasons       {:api-username
+                                  (spec/explain-data spec "user")}
                   :original      configuration-source
                   :evaluated     (select-keys configuration-source
                                    [:api-password :api-group])}
@@ -142,11 +187,46 @@
           (is (= ExceptionInfo (type exception)))
           (is (= (str "Configuration evaluation failed. "
                    "Missing parameters: [:api-username :api-password], "
+                   "invalid parameters: [], "
                    "unconvertible parameters: [].")
                 (.getMessage exception)))
           (is (= {:missing       [:api-username
                                   :api-password]
+                  :invalid       []
                   :unconvertible []
+                  :reasons       {}
+                  :original      configuration-source
+                  :evaluated     (select-keys configuration-source
+                                   [:api-group])}
+                (ex-data exception)))))
+
+      (testing (str "throws exception with all invalid parameters when "
+                 "multiple do not match spec")
+        (let [spec (fn [value] (>= (count value) 8))
+              specification
+              (c/define-configuration-specification
+                (c/with-parameter :api-username :spec spec)
+                (c/with-parameter :api-password :spec spec)
+                (c/with-parameter :api-group :nilable true))
+              configuration-source {:api-username "user"
+                                    :api-password "pass"
+                                    :api-group    nil}
+              exception (evaluate-and-catch
+                          specification configuration-source)]
+          (is (= ExceptionInfo (type exception)))
+          (is (= (str "Configuration evaluation failed. "
+                   "Missing parameters: [], "
+                   "invalid parameters: [:api-username :api-password], "
+                   "unconvertible parameters: [].")
+                (.getMessage exception)))
+          (is (= {:missing       []
+                  :invalid       [:api-username
+                                  :api-password]
+                  :unconvertible []
+                  :reasons       {:api-username
+                                  (spec/explain-data spec "user")
+                                  :api-password
+                                  (spec/explain-data spec "pass")}
                   :original      configuration-source
                   :evaluated     (select-keys configuration-source
                                    [:api-group])}
@@ -229,10 +309,13 @@
           (is (= ExceptionInfo (type exception)))
           (is (= (str "Configuration evaluation failed. "
                    "Missing parameters: [], "
+                   "invalid parameters: [], "
                    "unconvertible parameters: [:api-port].")
                 (.getMessage exception)))
           (is (= {:missing       []
+                  :invalid       []
                   :unconvertible [:api-port]
+                  :reasons       {}
                   :original      configuration-source
                   :evaluated     (select-keys configuration-source
                                    [:api-identifier])}
@@ -252,12 +335,15 @@
           (is (= ExceptionInfo (type exception)))
           (is (= (str "Configuration evaluation failed. "
                    "Missing parameters: [], "
+                   "invalid parameters: [], "
                    "unconvertible parameters: [:api-port1 :api-port2].")
                 (.getMessage exception)))
           (is (= {:missing       []
+                  :invalid       []
                   :unconvertible [:api-port1
                                   :api-port2]
                   :original      configuration-source
+                  :reasons       {}
                   :evaluated     (select-keys configuration-source
                                    [:api-group])}
                 (ex-data exception)))))
@@ -280,12 +366,15 @@
           (is (= ExceptionInfo (type exception)))
           (is (= (str "Configuration evaluation failed. "
                    "Missing parameters: [:api-username :api-password], "
+                   "invalid parameters: [], "
                    "unconvertible parameters: [:api-port1 :api-port2].")
                 (.getMessage exception)))
           (is (= {:missing       [:api-username
                                   :api-password]
+                  :invalid       []
                   :unconvertible [:api-port1
                                   :api-port2]
+                  :reasons       {}
                   :original      configuration-source
                   :evaluated     (select-keys configuration-source
                                    [:api-group])}

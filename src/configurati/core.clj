@@ -28,11 +28,10 @@
 (defn multi-source [& sources]
   (->MultiConfigurationSource sources))
 
-(defn with-parameter [parameter-name & args]
+(defn with-parameter [parameter-name & {:as options}]
   (let [defaults {:nilable false
                   :type    :string}
-        base {:name parameter-name}
-        options (apply hash-map args)]
+        base {:name parameter-name}]
     [:parameter (map->ConfigurationParameter
                   (clojure.core/merge defaults base options))]))
 
