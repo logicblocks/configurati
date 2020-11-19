@@ -55,10 +55,11 @@ that parameter in the provided configuration sources. Names are always
 keywords.
 
 Parameters also have options:
- * `:type`: specifies the type of the resulting value. Currently, only `:string`
-   and `:integer` are supported although the conversions are extensible as
-   detailed in the advanced usage section below. Defaults to `:string`.
- * `:nilable`: whether or not the parameter can be `nil`. Either `true` or 
+ * `:type`: specifies the type of the resulting value. Currently, only `:any`, 
+   `:string` and `:integer` are supported although the conversions are 
+   extensible as detailed in the advanced usage section below. Defaults to 
+   `:any`, performing no conversion of the looked up values.
+ * `:nilable`: whether the parameter can be `nil`. Either `true` or 
    `false`. Defaults to `false`.
  * `:validator`: specifies a validator function or keyword referencing a spec 
    to validate the parameter against. Validation occurs post-conversion.

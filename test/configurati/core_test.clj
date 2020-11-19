@@ -35,25 +35,25 @@
                          {:name    :api-username
                           :nilable false
                           :default nil
-                          :type    :string})]
+                          :type    :any})]
           (c/with-parameter :api-username)))
     (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable false
                           :default nil
-                          :type    :string})]
+                          :type    :any})]
           (c/with-parameter :api-username :nilable false)))
     (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable true
                           :default nil
-                          :type    :string})]
+                          :type    :any})]
           (c/with-parameter :api-username :nilable true)))
     (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-username
                           :nilable false
                           :default "username"
-                          :type    :string})]
+                          :type    :any})]
           (c/with-parameter :api-username :default "username")))
     (is (= [:parameter (map->ConfigurationParameter
                          {:name    :api-port

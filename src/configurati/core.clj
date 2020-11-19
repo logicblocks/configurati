@@ -30,7 +30,7 @@
 
 (defn with-parameter [parameter-name & {:as options}]
   (let [defaults {:nilable false
-                  :type    :string}
+                  :type    :any}
         base {:name parameter-name}]
     [:parameter (map->ConfigurationParameter
                   (clojure.core/merge defaults base options))]))
