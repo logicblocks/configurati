@@ -5,9 +5,8 @@
    [configurati.conversions :refer [convert-to]]))
 
 (defn- invalid-reason [parameter value]
-  (if-let [validator (:validator parameter)]
-    (spec/explain-data validator value)
-    nil))
+  (when-let [validator (:validator parameter)]
+    (spec/explain-data validator value)))
 
 (defn- invalid? [parameter value]
   (if-let [validator (:validator parameter)]
