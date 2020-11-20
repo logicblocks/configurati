@@ -4,6 +4,10 @@
    [clojure.string :refer [replace]]))
 
 (defn remove-prefix [prefix]
-  (fn [key] (keyword (replace (name key) (str (name prefix) "-") ""))))
+  (fn [key]
+    (keyword
+      (replace (name key)
+        (re-pattern (str "^" (name prefix) "-"))
+        ""))))
 (defn add-prefix [prefix]
   (fn [key] (keyword (str (name prefix) "-" (name key)))))

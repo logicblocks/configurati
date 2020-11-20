@@ -54,28 +54,45 @@
 (defn with-specification [specification]
   [:specification specification])
 
+(defn with-transformation [transformation]
+  [:transformation transformation])
+
 (defn define-configuration-specification [& args]
-  (let [elements (group-by first args)
-        parameters (map second (:parameter elements))
-        key-fn (apply comp (map second (:key-fn elements)))]
-    (->ConfigurationSpecification parameters key-fn)))
+  (let [elements
+        (group-by first args)
+        parameters
+        (map second (:parameter elements))
+        key-fn
+        (apply comp (reverse (map second (:key-fn elements))))
+        transformation
+        (apply comp (reverse (map second (:transformation elements))))]
+    (->ConfigurationSpecification parameters key-fn transformation)))
 
 (defn define-configuration [& args]
   (let [elements (group-by first args)
 
-        top-level-parameters (map second (:parameter elements))
-        top-level-key-fns (map second (:key-fn elements))
-        top-level-key-fn (apply comp top-level-key-fns)
+        top-level-parameters
+        (map second (:parameter elements))
+        top-level-key-fns
+        (reverse (map second (:key-fn elements)))
+        top-level-key-fn
+        (apply comp top-level-key-fns)
+        top-level-transformations
+        (reverse (map second (:transformation elements)))
+        top-level-transformation
+        (apply comp top-level-transformations)
 
         top-level-specification
         (->ConfigurationSpecification
-          top-level-parameters top-level-key-fn)
+          top-level-parameters top-level-key-fn top-level-transformation)
 
         existing-specifications (map second (:specification elements))
         existing-specifications
-        (map (fn [{:keys [parameters key-fn]}]
+        (map (fn [{:keys [parameters key-fn transformation]}]
                (->ConfigurationSpecification
-                 parameters (comp top-level-key-fn key-fn)))
+                 parameters
+                 (comp top-level-key-fn key-fn)
+                 (comp top-level-transformation transformation)))
           existing-specifications)
 
         specifications (conj existing-specifications top-level-specification)

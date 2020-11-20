@@ -373,6 +373,38 @@ functions are provided in `configurati.key-fns`.
  :service-port     5000}
 ```
 
+### Transformations
+
+In some cases, you may need to change the shape of a configuration map or add,
+modify or remove elements from it. Transformations enable this.
+
+When a configuration is defined, one or more transformations can be provided
+allowing the configuration map to be transformed during configuration 
+resolution. A transformation function receives the resolved configuration map 
+and returns it after applying the transformation. 
+
+```clojure
+(require '[configurati.key-fns :refer [add-prefix remove-prefix]])
+
+(def api-configuration
+  (define-configuration
+    (with-source
+      (map-source {:username "some-username"
+                   :password "some-password"
+                   :port     "5000"}))
+    (with-parameter :username)
+    (with-parameter :password)
+    (with-parameter :port :type :integer)
+    (with-transformation (fn [m] {:api m}))))
+
+(resolve api-configuration)
+=>
+{:api
+ {:username "some-username"
+  :password "some-password"
+  :port     5000}}
+```
+
 ### Specifications
 
 A set of parameters makes up a configuration specification. Configuration
@@ -454,8 +486,9 @@ similar to those described above:
 ```
 
 When configuration specifications are merged as part of a definition, 
-their key functions are composed together in the order the specifications
-are provided with any key functions on the definition itself applying last:
+their key functions are composed together in the reverse order the 
+specifications are provided with any key functions on the definition itself 
+applying last:
 
 ```clojure
 (def specification-1
@@ -471,13 +504,13 @@ are provided with any key functions on the definition itself applying last:
     (with-specification specification-1)
     (with-specification specification-2)
     (with-parameter :param)
-    (with-key-fn (fn [key] (keyword key)))
     (with-key-fn (fn [key] (str "def-" (name key))))
+    (with-key-fn (fn [key] (keyword key)))
     (with-source (map-source {:param "val"}))))
 
 (resolve configuration)
 =>
-{:def-s1-s2-param "val"}
+{:def-s2-s1-param "val"}
 ```
 
 ## Advanced Usage

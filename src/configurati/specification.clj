@@ -31,7 +31,8 @@
 (defn- with-value [evaluation-result parameter-name value]
   (update-in evaluation-result [:evaluated] #(assoc % parameter-name value)))
 
-(defn- determine-evaluation-result [parameters configuration-source key-fn]
+(defn- determine-evaluation-result
+  [parameters configuration-source key-fn]
   (reduce
     (fn [evaluation-result parameter]
       (let [parameter-name (:name parameter)
@@ -60,7 +61,7 @@
     parameters))
 
 (defrecord ConfigurationSpecification
-  [parameters key-fn]
+  [parameters key-fn transformation]
   Evaluatable
   (evaluate [_ configuration-source]
     (let [evaluation-result (determine-evaluation-result
@@ -72,7 +73,7 @@
           invalid-parameters (:invalid evaluation-result)
           unconvertible-parameters (:unconvertible evaluation-result)]
       (if valid?
-        (:evaluated evaluation-result)
+        (transformation (:evaluated evaluation-result))
         (throw (ex-info
                  (str "Configuration evaluation failed. "
                    "Missing parameters: " missing-parameters ", "

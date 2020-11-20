@@ -425,6 +425,35 @@
                                     :api-password "some-password"}]
           (is (= {:service-username "some-username"
                   :service-password "some-password"}
+                (evaluate specification configuration-source)))))
+
+      (testing "applies transformation to configuration map before returning"
+        (let [specification (c/define-configuration-specification
+                              (c/with-parameter :api-username)
+                              (c/with-parameter :api-password)
+                              (c/with-transformation
+                                (fn [m] {:credentials m})))
+              configuration-source {:api-username "some-username"
+                                    :api-password "some-password"}]
+          (is (= {:credentials
+                  {:api-username "some-username"
+                   :api-password "some-password"}}
+                (evaluate specification configuration-source)))))
+
+      (testing (str "applies many transformations to configuration map "
+                 "before returning")
+        (let [specification (c/define-configuration-specification
+                              (c/with-parameter :api-username)
+                              (c/with-parameter :api-password)
+                              (c/with-transformation
+                                (fn [m] {:credentials m}))
+                              (c/with-transformation
+                                (fn [m] (merge {:timeout 5000} m))))
+              configuration-source {:api-username "some-username"
+                                    :api-password "some-password"}]
+          (is (= {:credentials {:api-username "some-username"
+                                :api-password "some-password"}
+                  :timeout     5000}
                 (evaluate specification configuration-source))))))))
 
 (deftest configuration-sources
@@ -723,6 +752,43 @@
                 :service-port     5000}
               (c/resolve configuration)))))
 
+    (testing "scopes transformations when defined on specifications"
+      (let [specification1 (c/define-configuration-specification
+                             (c/with-parameter :username)
+                             (c/with-parameter :password)
+                             (c/with-transformation
+                               (fn [m] {:credentials m})))
+            specification2 (c/define-configuration-specification
+                             (c/with-parameter :timeout :type :integer)
+                             (c/with-transformation
+                               (fn [m] {:options m})))
+            configuration (c/define-configuration
+                            (c/with-source {:username "some-username"
+                                            :password "some-password"
+                                            :timeout  10000})
+                            (c/with-specification specification1)
+                            (c/with-specification specification2))]
+        (is (= {:credentials {:username "some-username"
+                              :password "some-password"}
+                :options     {:timeout 10000}}
+              (c/resolve configuration)))))
+
+    (testing "uses provided transformations"
+      (let [configuration (c/define-configuration
+                            (c/with-source
+                              (c/map-source {:username "some-username"
+                                             :password "some-password"}))
+                            (c/with-parameter :username)
+                            (c/with-parameter :password)
+                            (c/with-transformation
+                              (fn [m] {:credentials m}))
+                            (c/with-transformation
+                              (fn [m] (merge {:options {:timeout 5000}} m))))]
+        (is (= {:credentials {:username "some-username"
+                              :password "some-password"}
+                :options     {:timeout 5000}}
+              (c/resolve configuration)))))
+
     (testing "applies source middleware before resolution"
       (let [password-masking-middleware
             (fn [source parameter-name]
@@ -822,4 +888,36 @@
                 :service-password  "api-password"
                 :database-username "db-username"
                 :database-password "db-password"}
+              (c/resolve merged)))))
+
+    (testing "scopes transformations to each configuration definition"
+      (let [configuration-1 (c/define-configuration
+                              (c/with-source
+                                (c/map-source
+                                  {:username "api-username"
+                                   :password "api-password"}))
+                              (c/with-parameter :username)
+                              (c/with-parameter :password)
+                              (c/with-transformation
+                                (fn [m] (merge {:timeout 10000} m)))
+                              (c/with-transformation
+                                (fn [m] {:api m})))
+            configuration-2 (c/define-configuration
+                              (c/with-source
+                                (c/map-source
+                                  {:username "db-username"
+                                   :password "db-password"}))
+                              (c/with-parameter :username)
+                              (c/with-parameter :password)
+                              (c/with-transformation
+                                (fn [m] (merge {:timeout 30000} m)))
+                              (c/with-transformation
+                                (fn [m] {:db m})))
+            merged (c/merge configuration-1 configuration-2)]
+        (is (= {:api {:username "api-username"
+                      :password "api-password"
+                      :timeout  10000}
+                :db  {:username "db-username"
+                      :password "db-password"
+                      :timeout  30000}}
               (c/resolve merged)))))))
