@@ -1,4 +1,4 @@
-(defproject io.logicblocks/configurati "0.5.4"
+(defproject io.logicblocks/configurati "0.5.5-RC1"
   :description "Define and resolve application configuration."
   :url "http://github.com/logicblocks/configurati"
 
