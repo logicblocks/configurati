@@ -552,6 +552,6 @@ or a derivative, transform and return the response.
 
 ## License
 
-Copyright © 2020 LogicBlocks
+Copyright &copy; 2021 LogicBlocks
 
 Distributed under the MIT license.
