@@ -46,7 +46,7 @@ namespace :keys do
         name_prefix: 'gpg',
         owner_name: 'LogicBlocks Maintainers',
         owner_email: 'maintainers@logicblocks.io',
-        owner_comment: 'component.jdbc-data-source.postgres CI Key'
+        owner_comment: 'configurati CI Key'
       )
     end
 
