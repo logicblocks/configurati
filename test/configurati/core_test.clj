@@ -5,7 +5,8 @@
    [clojure.string :refer [replace]]
    [clojure.spec.alpha :as spec]
 
-   [cheshire.core :as json]
+   [jason.core :as jason]
+   [jason.convenience :as jason-c]
 
    [configurati.core :as c]
    [configurati.key-fns
@@ -509,8 +510,8 @@
             issuer-2-value {:url      "https://issuer-2.example.com"
                             :audience "https://service-2.example.com"}
             source (c/map-source
-                     {:issuer-1 (json/generate-string issuer-1-value)
-                      :issuer-2 (json/generate-string issuer-2-value)})
+                     {:issuer-1 (jason-c/->wire-json issuer-1-value)
+                      :issuer-2 (jason-c/->wire-json issuer-2-value)})
 
             middleware (json-parsing-middleware)
 
@@ -522,7 +523,7 @@
     (testing "passes through nil value when parameter not available in source"
       (let [source (c/map-source
                      {:issuer
-                      (json/generate-string
+                      (jason-c/->wire-json
                         {:url      "https://issuer-1.example.com"
                          :audience "https://service-1.example.com"})})
 
@@ -537,7 +538,7 @@
             timeout-value 10000
 
             source (c/map-source
-                     {:issuer  (json/generate-string issuer-value)
+                     {:issuer  (jason-c/->wire-json issuer-value)
                       :timeout timeout-value})
 
             middleware (json-parsing-middleware
@@ -549,10 +550,10 @@
         (is (= timeout-value timeout-parameter-value))))
 
     (testing "when using a specific JSON parser"
-      (let [json-parser (fn [value] (json/parse-string value false))
+      (let [json-parser (jason/new-json-decoder)
 
             source (c/map-source
-                     {:issuer (json/generate-string
+                     {:issuer (jason-c/->wire-json
                                 {:url      "https://issuer-1.example.com"
                                  :audience "https://service-1.example.com"})})
 
@@ -568,7 +569,7 @@
       (let [key-fn (fn [key] (keyword (str (name key) "-modified")))
 
             source (c/map-source
-                     {:issuer (json/generate-string
+                     {:issuer (jason-c/->wire-json
                                 {:url      "https://issuer-1.example.com"
                                  :audience "https://service-1.example.com"})})
 

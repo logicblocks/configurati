@@ -17,10 +17,10 @@
             [lein-bikeshed "0.5.2"]
             [jonase/eastwood "0.3.11"]]
 
-  :dependencies [[environ "1.1.0"]
+  :dependencies [[io.logicblocks/jason "1.0.0-RC3"]
+                 [environ "1.1.0"]
                  [clj-yaml "0.4.0"]
-                 [medley "1.0.0"]
-                 [cheshire "5.10.0"]]
+                 [medley "1.0.0"]]
 
   :profiles
   {:shared
