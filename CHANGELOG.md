@@ -5,6 +5,8 @@ change log follows the conventions of
 
 ## [Unreleased]
 
+## [0.5.5] — 2022-02-09
+
 ## [0.5.4] — 2020-11-20
 
 ## [0.5.2] — 2019-10-05
@@ -30,4 +32,5 @@ Initial release
 [0.5.1]: https://github.com/logicblocks/configurati/compare/0.5.0...0.5.1
 [0.5.2]: https://github.com/logicblocks/configurati/compare/0.5.1...0.5.2
 [0.5.4]: https://github.com/logicblocks/configurati/compare/0.5.2...0.5.4
-[Unreleased]: https://github.com/logicblocks/configurati/compare/0.5.4...HEAD
+[0.5.5]: https://github.com/logicblocks/configurati/compare/0.5.4...0.5.5
+[Unreleased]: https://github.com/logicblocks/configurati/compare/0.5.5...HEAD
