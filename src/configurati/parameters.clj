@@ -35,7 +35,7 @@
       :else {:error nil
              :value value}))
   (default [_ value]
-    (or value default))
+    (if (nil? value) default value))
   (convert [_ value]
     (try
       {:error nil :value (convert-to type value)}

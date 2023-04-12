@@ -247,6 +247,13 @@
                    {:api-identifier default-identifier})
                 (evaluate specification configuration-source)))))
 
+      (testing "returns provided boolean override when default boolean true"
+        (let [specification (c/define-configuration-specification
+                              (c/with-parameter :thing :default true))
+              configuration-source {:thing false}]
+          (is (= configuration-source
+                (evaluate specification configuration-source)))))
+
       (testing "returns provided default when parameter is not present"
         (let [default-identifier "default-identifier"
               specification (c/define-configuration-specification
