@@ -8,5 +8,8 @@
 (defmethod convert-to :string [_ value]
   (when (some? value) (String/valueOf value)))
 
+(defmethod convert-to :boolean [_ value]
+  (if (#{"true" true} value) true false))
+
 (defmethod convert-to :default [_ value]
   value)

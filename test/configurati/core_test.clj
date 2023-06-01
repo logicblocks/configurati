@@ -27,9 +27,6 @@
    [clojure.string :as string])
   (:import [clojure.lang ExceptionInfo]))
 
-(defmethod convert-to :boolean [_ value]
-  (if (#{"true" true} value) true false))
-
 (deftest configuration-parameters
   (testing "construction"
     (is (= [:parameter (map->ConfigurationParameter
