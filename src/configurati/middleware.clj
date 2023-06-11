@@ -20,9 +20,7 @@
                {:decode-key-fn key-fn})))
          parameters-to-parse (set (get opts :only))]
      (fn [source parameter-name]
-       (let [
-
-             parameter-value (get source parameter-name)]
+       (let [parameter-value (get source parameter-name)]
          (if (or (empty? parameters-to-parse)
                (parameters-to-parse parameter-name))
            (parse-fn parameter-value)
