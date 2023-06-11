@@ -552,6 +552,7 @@ or a derivative, transform and return the response.
 
 ## License
 
-Copyright &copy; 2021 LogicBlocks
+Copyright &copy; 2023 LogicBlocks Maintainers
 
-Distributed under the MIT license.
+Distributed under the terms of the
+[MIT License](http://opensource.org/licenses/MIT).
