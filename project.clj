@@ -5,32 +5,32 @@
   :license {:name "The MIT License"
             :url  "https://opensource.org/licenses/MIT"}
 
-  :plugins [[lein-cloverage "1.1.2"]
+  :plugins [[lein-cloverage "1.2.4"]
             [lein-shell "0.5.0"]
-            [lein-cprint "1.3.3"]
-            [lein-ancient "0.6.15"]
+            [lein-ancient "0.7.0"]
             [lein-changelog "0.3.2"]
-            [lein-eftest "0.5.9"]
-            [lein-codox "0.10.7"]
-            [lein-cljfmt "0.6.7"]
+            [lein-cprint "1.3.3"]
+            [lein-eftest "0.6.0"]
+            [lein-codox "0.10.8"]
+            [lein-cljfmt "0.9.2"]
             [lein-kibit "0.1.8"]
             [lein-bikeshed "0.5.2"]
-            [jonase/eastwood "0.3.11"]]
+            [jonase/eastwood "1.4.0"]]
 
   :dependencies [[io.logicblocks/jason "1.0.0-RC3"]
-                 [environ "1.1.0"]
-                 [clj-yaml "0.4.0"]
-                 [medley "1.0.0"]]
+                 [clj-commons/clj-yaml "1.0.26"]
+                 [environ "1.2.0"]
+                 [medley "1.4.0"]]
 
   :profiles
   {:shared
    ^{:pom-scope :test}
-   {:dependencies [[org.clojure/clojure "1.10.1"]
-                   [org.clojure/tools.trace "0.7.10"]
+   {:dependencies [[org.clojure/clojure "1.11.1"]
+                   [org.clojure/tools.trace "0.7.11"]
 
-                   [nrepl "0.7.0"]
+                   [nrepl "1.0.0"]
 
-                   [eftest "0.5.9"]]}
+                   [eftest "0.6.0"]]}
    :dev
    [:shared {:source-paths ["dev"]
              :eftest       {:multithread? false}}]

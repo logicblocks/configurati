@@ -136,7 +136,7 @@
                    "Missing parameters: [:api-username], "
                    "invalid parameters: [], "
                    "unconvertible parameters: [].")
-                (.getMessage exception)))
+                (.getMessage ^Exception exception)))
           (is (= {:missing       [:api-username]
                   :invalid       []
                   :unconvertible []
@@ -163,7 +163,7 @@
                    "Missing parameters: [], "
                    "invalid parameters: [:api-username], "
                    "unconvertible parameters: [].")
-                (.getMessage exception)))
+                (.getMessage ^Exception exception)))
           (is (= {:missing       []
                   :invalid       [:api-username]
                   :unconvertible []
@@ -190,7 +190,7 @@
                    "Missing parameters: [:api-username :api-password], "
                    "invalid parameters: [], "
                    "unconvertible parameters: [].")
-                (.getMessage exception)))
+                (.getMessage ^Exception exception)))
           (is (= {:missing       [:api-username
                                   :api-password]
                   :invalid       []
@@ -219,7 +219,7 @@
                    "Missing parameters: [], "
                    "invalid parameters: [:api-username :api-password], "
                    "unconvertible parameters: [].")
-                (.getMessage exception)))
+                (.getMessage ^Exception exception)))
           (is (= {:missing       []
                   :invalid       [:api-username
                                   :api-password]
@@ -319,7 +319,7 @@
                    "Missing parameters: [], "
                    "invalid parameters: [], "
                    "unconvertible parameters: [:api-port].")
-                (.getMessage exception)))
+                (.getMessage ^Exception exception)))
           (is (= {:missing       []
                   :invalid       []
                   :unconvertible [:api-port]
@@ -345,7 +345,7 @@
                    "Missing parameters: [], "
                    "invalid parameters: [], "
                    "unconvertible parameters: [:api-port1 :api-port2].")
-                (.getMessage exception)))
+                (.getMessage ^Exception exception)))
           (is (= {:missing       []
                   :invalid       []
                   :unconvertible [:api-port1
@@ -376,7 +376,7 @@
                    "Missing parameters: [:api-username :api-password], "
                    "invalid parameters: [], "
                    "unconvertible parameters: [:api-port1 :api-port2].")
-                (.getMessage exception)))
+                (.getMessage ^Exception exception)))
           (is (= {:missing       [:api-username
                                   :api-password]
                   :invalid       []
