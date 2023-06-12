@@ -6,6 +6,8 @@ change log follows the conventions of
 
 ## [Unreleased]
 
+## [0.5.6] — 2023-06-12
+
 ### Changed
 
 - All dependencies have been upgraded to the latest available versions.
@@ -83,4 +85,5 @@ Initial release
 
 [0.5.5]: https://github.com/logicblocks/configurati/compare/0.5.4...0.5.5
 
-[Unreleased]: https://github.com/logicblocks/configurati/compare/0.5.5...HEAD
+[0.5.6]: https://github.com/logicblocks/configurati/compare/0.5.5...0.5.6
+[Unreleased]: https://github.com/logicblocks/configurati/compare/0.5.6...HEAD
