@@ -6,6 +6,12 @@ change log follows the conventions of
 
 ## [Unreleased]
 
+## [0.5.7] - 2024-03-18
+
+### Changed
+
+- All dependencies have been upgraded to the latest available versions.
+
 ## [0.5.6] — 2023-06-12
 
 ### Changed

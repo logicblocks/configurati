@@ -18,17 +18,17 @@
             [jonase/eastwood "1.4.0"]]
 
   :dependencies [[io.logicblocks/jason "1.0.0"]
-                 [clj-commons/clj-yaml "1.0.26"]
+                 [clj-commons/clj-yaml "1.0.27"]
                  [environ "1.2.0"]
                  [medley "1.4.0"]]
 
   :profiles
   {:shared
    ^{:pom-scope :test}
-   {:dependencies [[org.clojure/clojure "1.11.1"]
-                   [org.clojure/tools.trace "0.7.11"]
+   {:dependencies [[org.clojure/clojure "1.11.2"]
+                   [org.clojure/tools.trace "0.8.0"]
 
-                   [nrepl "1.0.0"]
+                   [nrepl "1.1.1"]
 
                    [eftest "0.6.0"]]}
    :dev
