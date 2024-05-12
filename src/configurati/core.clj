@@ -1,43 +1,39 @@
 (ns configurati.core
   (:refer-clojure :exclude [resolve merge])
   (:require
-   [configurati.definition
-    :refer [->ConfigurationDefinition]]
-   [configurati.parameters
-    :refer [map->ConfigurationParameter]]
-   [configurati.sources
-    :refer [->MapConfigurationSource
-            ->EnvConfigurationSource
-            ->YamlFileConfigurationSource
-            ->FnConfigurationSource
-            ->MultiConfigurationSource]]
-   [configurati.specification
-    :refer [->ConfigurationSpecification]]))
+   [configurati.definition :as conf-def]
+   [configurati.parameters :as conf-param]
+   [configurati.sources :as conf-sources]
+   [configurati.specification :as conf-spec]))
 
 (defn map-source [m]
-  (->MapConfigurationSource m))
+  (conf-sources/->MapConfigurationSource m))
 
 (defn env-source [& {:as options}]
   (let [prefix (:prefix options)]
-    (->EnvConfigurationSource prefix)))
+    (conf-sources/->EnvConfigurationSource prefix)))
+
+(defn environ-source [& {:as options}]
+  (let [prefix (:prefix options)]
+    (conf-sources/->EnvironConfigurationSource prefix)))
 
 (defn yaml-file-source [path & {:as options}]
   (let [prefix (:prefix options)]
-    (->YamlFileConfigurationSource path prefix)))
+    (conf-sources/->YamlFileConfigurationSource path prefix)))
 
 (defn multi-source [& sources]
-  (->MultiConfigurationSource sources))
+  (conf-sources/->MultiConfigurationSource sources))
 
 (defn with-parameter [parameter-name & {:as options}]
   (let [defaults {:nilable false
                   :type    :any}
         base {:name parameter-name}]
-    [:parameter (map->ConfigurationParameter
+    [:parameter (conf-param/map->ConfigurationParameter
                   (clojure.core/merge defaults base options))]))
 
 (defn with-middleware [middleware]
   (fn [source]
-    (->FnConfigurationSource (partial middleware source))))
+    (conf-sources/->FnConfigurationSource (partial middleware source))))
 
 (defn with-source
   ([source] [:source source])
@@ -66,7 +62,8 @@
         (apply comp (reverse (map second (:key-fn elements))))
         transformation
         (apply comp (reverse (map second (:transformation elements))))]
-    (->ConfigurationSpecification parameters key-fn transformation)))
+    (conf-spec/->ConfigurationSpecification
+      parameters key-fn transformation)))
 
 (defn define-configuration [& args]
   (let [elements (group-by first args)
@@ -83,13 +80,13 @@
         (apply comp top-level-transformations)
 
         top-level-specification
-        (->ConfigurationSpecification
+        (conf-spec/->ConfigurationSpecification
           top-level-parameters top-level-key-fn top-level-transformation)
 
         existing-specifications (map second (:specification elements))
         existing-specifications
         (map (fn [{:keys [parameters key-fn transformation]}]
-               (->ConfigurationSpecification
+               (conf-spec/->ConfigurationSpecification
                  parameters
                  (comp top-level-key-fn key-fn)
                  (comp top-level-transformation transformation)))
@@ -98,8 +95,8 @@
         specifications (conj existing-specifications top-level-specification)
 
         sources (map second (:source elements))
-        source (->MultiConfigurationSource sources)]
-    (->ConfigurationDefinition source specifications)))
+        source (conf-sources/->MultiConfigurationSource sources)]
+    (conf-def/->ConfigurationDefinition source specifications)))
 
 (defn resolve [definition]
   (configurati.definition/resolve definition))

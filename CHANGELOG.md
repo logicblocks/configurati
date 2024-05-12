@@ -6,11 +6,17 @@ change log follows the conventions of
 
 ## [Unreleased]
 
-## [0.5.7] - 2024-03-18
-
 ### Changed
 
 - All dependencies have been upgraded to the latest available versions.
+- `configurati.core/env-source` has been renamed to 
+  `configurati.core/environ-source` to better reflect how it sources 
+  configuration.
+
+### Added
+
+- `configurati.core/env-source` has been re-introduced as a source that is 
+  based solely on environment variables.
 
 ## [0.5.6] — 2023-06-12
 

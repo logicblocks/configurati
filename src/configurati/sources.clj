@@ -1,27 +1,33 @@
 (ns configurati.sources
   (:refer-clojure :exclude [replace resolve])
   (:require
-   [environ.core :refer [env]]
-   [clojure.string :refer [join lower-case replace]]
+   [environ.core :as environ]
+   [clojure.string :as string]
    [clj-yaml.core :as yaml]
-   [medley.core :refer [map-keys find-first]])
+   [medley.core :as medley])
   (:import
    [clojure.lang ILookup]))
 
 (defn- prefix-keyword [prefix k]
   (if prefix
-    (keyword (join "-" [(name prefix) (name k)]))
+    (keyword (string/join "-" [(name prefix) (name k)]))
     k))
 
-(defn- to-kebab-case-keyword [value]
+(defn- ->kebab-case-keyword [value]
   (-> (name value)
-    (lower-case)
-    (replace "_" "-")
-    (replace "." "-")
+    (string/lower-case)
+    (string/replace "_" "-")
+    (string/replace "." "-")
     (keyword)))
 
 (defn- convert-keys-to-kebab-case [coll]
-  (map-keys to-kebab-case-keyword coll))
+  (medley/map-keys ->kebab-case-keyword coll))
+
+(defn- read-system-env
+  []
+  (->> (System/getenv)
+    (map (fn [[k v]] [(->kebab-case-keyword k) v]))
+    (into {})))
 
 (defn- read-yaml-configuration-file [path]
   (->>
@@ -41,9 +47,17 @@
   [prefix]
   ILookup
   (valAt [_ parameter-name]
-    (env (prefix-keyword prefix parameter-name)))
+    (get (read-system-env) (prefix-keyword prefix parameter-name)))
   (valAt [_ parameter-name default]
-    (env (prefix-keyword prefix parameter-name) default)))
+    (get (read-system-env) (prefix-keyword prefix parameter-name) default)))
+
+(deftype EnvironConfigurationSource
+  [prefix]
+  ILookup
+  (valAt [_ parameter-name]
+    (environ/env (prefix-keyword prefix parameter-name)))
+  (valAt [_ parameter-name default]
+    (environ/env (prefix-keyword prefix parameter-name) default)))
 
 (deftype YamlFileConfigurationSource
   [path prefix]
@@ -67,7 +81,7 @@
   [sources]
   ILookup
   (valAt [_ parameter-name]
-    (find-first
+    (medley/find-first
       #(not (nil? %))
       (map parameter-name sources)))
   (valAt [this parameter-name default]

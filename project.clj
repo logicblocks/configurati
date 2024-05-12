@@ -25,7 +25,7 @@
   :profiles
   {:shared
    ^{:pom-scope :test}
-   {:dependencies [[org.clojure/clojure "1.11.2"]
+   {:dependencies [[org.clojure/clojure "1.11.3"]
                    [org.clojure/tools.trace "0.8.0"]
 
                    [nrepl "1.1.1"]

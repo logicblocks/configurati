@@ -9,5 +9,6 @@
       (replace (name key)
         (re-pattern (str "^" (name prefix) "-"))
         ""))))
+
 (defn add-prefix [prefix]
   (fn [key] (keyword (str (name prefix) "-" (name key)))))
