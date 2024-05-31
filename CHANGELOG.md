@@ -17,6 +17,13 @@ change log follows the conventions of
 
 - `configurati.core/env-source` has been re-introduced as a source that is 
   based solely on environment variables.
+- A `parameter` constructor function has been added to allow declaring 
+  parameters outside of configuration specification and configuration
+  definitions.
+- `define-configuration-specification` and `define-configuration` have been
+  deprecated in favour of the new `configuration-specification` and 
+  `configuration` constructor functions.
+- Equality has been implemented for all sources.
 
 ## [0.5.6] — 2023-06-12
 
