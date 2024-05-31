@@ -22,36 +22,36 @@
 
 (deftest configuration-parameters
   (testing "construction"
-    (is (= [:parameter (conf-param/map->ConfigurationParameter
-                         {:name    :api-username
-                          :nilable false
-                          :default nil
-                          :type    :any})]
-          (conf/with-parameter :api-username)))
-    (is (= [:parameter (conf-param/map->ConfigurationParameter
-                         {:name    :api-username
-                          :nilable false
-                          :default nil
-                          :type    :any})]
-          (conf/with-parameter :api-username :nilable false)))
-    (is (= [:parameter (conf-param/map->ConfigurationParameter
-                         {:name    :api-username
-                          :nilable true
-                          :default nil
-                          :type    :any})]
-          (conf/with-parameter :api-username :nilable true)))
-    (is (= [:parameter (conf-param/map->ConfigurationParameter
-                         {:name    :api-username
-                          :nilable false
-                          :default "username"
-                          :type    :any})]
-          (conf/with-parameter :api-username :default "username")))
-    (is (= [:parameter (conf-param/map->ConfigurationParameter
-                         {:name    :api-port
-                          :nilable false
-                          :default nil
-                          :type    :integer})]
-          (conf/with-parameter :api-port :type :integer))))
+    (is (= (conf-param/map->ConfigurationParameter
+             {:name    :api-username
+              :nilable false
+              :default nil
+              :type    :any})
+          (conf/parameter :api-username)))
+    (is (= (conf-param/map->ConfigurationParameter
+             {:name    :api-username
+              :nilable false
+              :default nil
+              :type    :any})
+          (conf/parameter :api-username {:nilable false})))
+    (is (= (conf-param/map->ConfigurationParameter
+             {:name    :api-username
+              :nilable true
+              :default nil
+              :type    :any})
+          (conf/parameter :api-username {:nilable true})))
+    (is (= (conf-param/map->ConfigurationParameter
+             {:name    :api-username
+              :nilable false
+              :default "username"
+              :type    :any})
+          (conf/parameter :api-username {:default "username"})))
+    (is (= (conf-param/map->ConfigurationParameter
+             {:name    :api-port
+              :nilable false
+              :default nil
+              :type    :integer})
+          (conf/parameter :api-port {:type :integer}))))
 
   (testing "defaulting"
     (let [parameter (conf-param/map->ConfigurationParameter
@@ -97,6 +97,14 @@
             (conf-param/validate parameter "username"))))))
 
 (deftest configuration-specifications
+  (testing "construction"
+    (testing "allows adding predefined parameter"
+      (let [parameter-element (conf/parameter :api-username {:nilable false})]
+        (is (= (conf/configuration-specification
+                 (conf/with-parameter parameter-element))
+              (conf/configuration-specification
+                (conf/with-parameter :api-username :nilable false)))))))
+
   (testing "evaluate"
     (let [evaluate-and-catch
           (fn [specification configuration-source]
@@ -105,7 +113,7 @@
               (catch ExceptionInfo e e)))]
       (testing "returns configuration map when no errors occur"
         (let [specification
-              (conf/define-configuration-specification
+              (conf/configuration-specification
                 (conf/with-parameter :api-username :nilable false)
                 (conf/with-parameter :api-password :nilable false))
               configuration-source {:api-username "some-username"
@@ -115,7 +123,7 @@
 
       (testing "throws exception when non-nilable parameter is nil"
         (let [specification
-              (conf/define-configuration-specification
+              (conf/configuration-specification
                 (conf/with-parameter :api-username :nilable false)
                 (conf/with-parameter :api-password :nilable false)
                 (conf/with-parameter :api-group :nilable true))
@@ -142,7 +150,7 @@
       (testing "throws exception when parameter does not match spec"
         (let [validator (fn [value] (>= (count value) 8))
               specification
-              (conf/define-configuration-specification
+              (conf/configuration-specification
                 (conf/with-parameter :api-username :validator validator)
                 (conf/with-parameter :api-password :nilable false)
                 (conf/with-parameter :api-group :nilable true))
@@ -170,7 +178,7 @@
       (testing (str "throws exception with all missing parameters when "
                  "multiple non-nilable parameters are nil")
         (let [specification
-              (conf/define-configuration-specification
+              (conf/configuration-specification
                 (conf/with-parameter :api-username :nilable false)
                 (conf/with-parameter :api-password :nilable false)
                 (conf/with-parameter :api-group :nilable true))
@@ -199,7 +207,7 @@
                  "multiple do not match spec")
         (let [validator (fn [value] (>= (count value) 8))
               specification
-              (conf/define-configuration-specification
+              (conf/configuration-specification
                 (conf/with-parameter :api-username :validator validator)
                 (conf/with-parameter :api-password :validator validator)
                 (conf/with-parameter :api-group :nilable true))
@@ -229,7 +237,7 @@
 
       (testing "returns provided default when parameter is nil"
         (let [default-identifier "default-identifier"
-              specification (conf/define-configuration-specification
+              specification (conf/configuration-specification
                               (conf/with-parameter :api-username)
                               (conf/with-parameter :api-password)
                               (conf/with-parameter :api-identifier
@@ -242,7 +250,7 @@
                 (conf-spec/evaluate specification configuration-source)))))
 
       (testing "returns provided boolean override when default boolean true"
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :thing :default true))
               configuration-source {:thing false}]
           (is (= configuration-source
@@ -250,7 +258,7 @@
 
       (testing "returns provided default when parameter is not present"
         (let [default-identifier "default-identifier"
-              specification (conf/define-configuration-specification
+              specification (conf/configuration-specification
                               (conf/with-parameter :api-username)
                               (conf/with-parameter :api-password)
                               (conf/with-parameter :api-identifier
@@ -263,7 +271,7 @@
 
       (testing (str "returns nil when nilable, no default specified and "
                  "parameter is nil")
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-username)
                               (conf/with-parameter :api-password)
                               (conf/with-parameter :api-group :nilable true))
@@ -275,7 +283,7 @@
 
       (testing (str "returns nil when nilable, no default specified and "
                  "parameter is not present")
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-username)
                               (conf/with-parameter :api-password)
                               (conf/with-parameter :api-group :nilable true))
@@ -287,21 +295,21 @@
 
       (testing (str "returns converted parameter when type specified and value "
                  "is convertible")
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-port :type :integer))
               configuration-source {:api-port "5000"}]
           (is (= {:api-port 5000}
                 (conf-spec/evaluate specification configuration-source)))))
 
       (testing "uses custom converter when defined"
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :encrypted? :type :boolean))
               configuration-source {:encrypted? "true"}]
           (is (= {:encrypted? true}
                 (conf-spec/evaluate specification configuration-source)))))
 
       (testing "throws exception when parameter fails to convert"
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-identifier)
                               (conf/with-parameter :api-port :type :integer))
               configuration-source {:api-identifier "some-identifier"
@@ -325,7 +333,7 @@
 
       (testing (str "throws exception with all unconvertible parameters when "
                  "multiple parameters fail to convert")
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-port1 :type :integer)
                               (conf/with-parameter :api-port2 :type :integer)
                               (conf/with-parameter :api-group))
@@ -352,7 +360,7 @@
 
       (testing (str "throws exception with all unconvertible and missing "
                  "parameters when multiple parameters are in error")
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-username)
                               (conf/with-parameter :api-password)
                               (conf/with-parameter :api-port1 :type :integer)
@@ -383,7 +391,7 @@
                 (ex-data exception)))))
 
       (testing "converts default"
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-port
                                 :type :integer
                                 :default "5000"))
@@ -392,7 +400,7 @@
                 (conf-spec/evaluate specification configuration-source)))))
 
       (testing "nilable parameters convert correctly when nil"
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-port
                                 :type :integer
                                 :nilable true)
@@ -406,7 +414,7 @@
                 (conf-spec/evaluate specification configuration-source)))))
 
       (testing "applies key function to each key before returning"
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-username)
                               (conf/with-parameter :api-password)
                               (conf/with-key-fn (conf-kf/remove-prefix :api)))
@@ -418,7 +426,7 @@
 
       (testing (str "applies many key functions to each key in supplied order "
                  "before returning")
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-username)
                               (conf/with-parameter :api-password)
                               (conf/with-key-fn (conf-kf/remove-prefix :api))
@@ -430,7 +438,7 @@
                 (conf-spec/evaluate specification configuration-source)))))
 
       (testing "applies transformation to configuration map before returning"
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-username)
                               (conf/with-parameter :api-password)
                               (conf/with-transformation
@@ -444,7 +452,7 @@
 
       (testing (str "applies many transformations to configuration map "
                  "before returning")
-        (let [specification (conf/define-configuration-specification
+        (let [specification (conf/configuration-specification
                               (conf/with-parameter :api-username)
                               (conf/with-parameter :api-password)
                               (conf/with-transformation
@@ -655,13 +663,23 @@
         (is (= [" usa " " uk " " germany "] parameter-value))))))
 
 (deftest configuration-definition
+  (testing "construction"
+    (testing "allows adding predefined parameter"
+      (let [parameter
+            (conf/parameter :api-username {:default "admin"})]
+        (is (= (conf/configuration
+                 (conf/with-parameter parameter))
+              (conf/configuration
+                (conf/with-parameter :api-username :default "admin")))))))
+
   (testing "resolve"
     (testing "resolves all parameters in the specification"
       (let [configuration
-            (conf/define-configuration
-              (conf/with-source (conf/map-source
-                                  {:api-username "some-username"
-                                   :api-port     "5000"}))
+            (conf/configuration
+              (conf/with-source
+                (conf/map-source
+                  {:api-username "some-username"
+                   :api-port     "5000"}))
               (conf/with-parameter :api-username)
               (conf/with-parameter :api-port
                 :type :integer))]
@@ -677,7 +695,7 @@
                                  "---\n"
                                  "api_username: \"some-username\"\n"
                                  "api_password: \"some-password\"\n")))]
-        (let [configuration (conf/define-configuration
+        (let [configuration (conf/configuration
                               (conf/with-source
                                 (conf/map-source {:api-port "5000"}))
                               (conf/with-source
@@ -692,10 +710,10 @@
                 (conf/resolve configuration))))))
 
     (testing "can be created from an existing specification"
-      (let [specification (conf/define-configuration-specification
+      (let [specification (conf/configuration-specification
                             (conf/with-parameter :api-username)
                             (conf/with-parameter :api-password))
-            configuration (conf/define-configuration
+            configuration (conf/configuration
                             (conf/with-source
                               (conf/map-source {:api-username "some-username"
                                                 :api-password "some-password"
@@ -708,12 +726,12 @@
               (conf/resolve configuration)))))
 
     (testing "can be created from multiple existing specifications"
-      (let [specification1 (conf/define-configuration-specification
+      (let [specification1 (conf/configuration-specification
                              (conf/with-parameter :api-username)
                              (conf/with-parameter :api-password))
-            specification2 (conf/define-configuration-specification
+            specification2 (conf/configuration-specification
                              (conf/with-parameter :api-port :type :integer))
-            configuration (conf/define-configuration
+            configuration (conf/configuration
                             (conf/with-source
                               (conf/map-source {:api-username "some-username"
                                                 :api-password "some-password"
@@ -727,18 +745,18 @@
 
     (testing "scopes key functions when defined on specifications"
       (let [specification1
-            (conf/define-configuration-specification
+            (conf/configuration-specification
               (conf/with-parameter :db-username)
               (conf/with-key-fn (conf-kf/remove-prefix :db))
               (conf/with-key-fn (conf-kf/add-prefix :postgres)))
             specification2
-            (conf/define-configuration-specification
+            (conf/configuration-specification
               (conf/with-parameter :database-password)
               (conf/with-key-fn
                 (conf-kf/remove-prefix :database))
               (conf/with-key-fn (conf-kf/add-prefix :postgres)))
             configuration
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source {:db-username       "some-username"
                                  :database-password "some-password"})
               (conf/with-specification specification1)
@@ -749,7 +767,7 @@
 
     (testing "uses provided key functions"
       (let [configuration
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source {:api-username "some-username"
                                   :api-password "some-password"
@@ -765,16 +783,16 @@
               (conf/resolve configuration)))))
 
     (testing "scopes transformations when defined on specifications"
-      (let [specification1 (conf/define-configuration-specification
+      (let [specification1 (conf/configuration-specification
                              (conf/with-parameter :username)
                              (conf/with-parameter :password)
                              (conf/with-transformation
                                (fn [m] {:credentials m})))
-            specification2 (conf/define-configuration-specification
+            specification2 (conf/configuration-specification
                              (conf/with-parameter :timeout :type :integer)
                              (conf/with-transformation
                                (fn [m] {:options m})))
-            configuration (conf/define-configuration
+            configuration (conf/configuration
                             (conf/with-source {:username "some-username"
                                                :password "some-password"
                                                :timeout  10000})
@@ -786,7 +804,7 @@
               (conf/resolve configuration)))))
 
     (testing "uses provided transformations"
-      (let [configuration (conf/define-configuration
+      (let [configuration (conf/configuration
                             (conf/with-source
                               (conf/map-source {:username "some-username"
                                                 :password "some-password"}))
@@ -813,7 +831,7 @@
                   parameter-value)))
 
             configuration
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source
                   {:api-credentials
@@ -832,14 +850,14 @@
   (testing "merge"
     (testing "resolves parameters across all definitions"
       (let [configuration-1
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source {:api-username "api-username"
                                   :api-password "api-password"}))
               (conf/with-parameter :api-username)
               (conf/with-parameter :api-password))
             configuration-2
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source {:db-username "db-username"
                                   :db-password "db-password"}))
@@ -854,7 +872,7 @@
 
     (testing "uses only sources defined within each configuration definition"
       (let [configuration-1
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source
                   {:api-username "api-username"
@@ -864,7 +882,7 @@
               (conf/with-parameter :api-username)
               (conf/with-parameter :api-password))
             configuration-2
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source
                   {:api-username "other-api-username"
@@ -882,7 +900,7 @@
 
     (testing "scopes key functions to each configuration definition"
       (let [configuration-1
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source
                   {:api-username "api-username"
@@ -892,7 +910,7 @@
               (conf/with-key-fn (conf-kf/remove-prefix :api))
               (conf/with-key-fn (conf-kf/add-prefix :service)))
             configuration-2
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source
                   {:db-username "db-username"
@@ -910,7 +928,7 @@
 
     (testing "scopes transformations to each configuration definition"
       (let [configuration-1
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source
                   {:username "api-username"
@@ -922,7 +940,7 @@
               (conf/with-transformation
                 (fn [m] {:api m})))
             configuration-2
-            (conf/define-configuration
+            (conf/configuration
               (conf/with-source
                 (conf/map-source
                   {:username "db-username"

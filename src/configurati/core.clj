@@ -24,36 +24,50 @@
 (defn multi-source [& sources]
   (conf-sources/->MultiConfigurationSource sources))
 
-(defn with-parameter [parameter-name & {:as options}]
-  (let [defaults {:nilable false
-                  :type    :any}
-        base {:name parameter-name}]
-    [:parameter (conf-param/map->ConfigurationParameter
-                  (clojure.core/merge defaults base options))]))
+(defn parameter? [value]
+  (satisfies? conf-param/Processable value))
+
+(defn- element [element-type value]
+  [element-type value])
+
+(defn parameter
+  ([parameter-name]
+   (parameter parameter-name {}))
+  ([parameter-name options]
+   (let [defaults {:nilable false
+                   :type    :any}
+         base {:name parameter-name}]
+     (conf-param/map->ConfigurationParameter
+       (clojure.core/merge defaults base options)))))
+
+(defn with-parameter [parameter-element-or-name & {:as options}]
+  (element :parameter
+    (if (parameter? parameter-element-or-name)
+      parameter-element-or-name
+      (parameter parameter-element-or-name options))))
 
 (defn with-middleware [middleware]
   (fn [source]
     (conf-sources/->FnConfigurationSource (partial middleware source))))
 
-(defn with-source
-  ([source] [:source source])
-  ([source & middleware-fns]
-   [:source (reduce
-              (fn [source middleware-fn]
-                (middleware-fn source))
-              source
-              middleware-fns)]))
+(defn with-source [source & middleware-fns]
+  (element :source
+    (reduce
+      (fn [source middleware-fn]
+        (middleware-fn source))
+      source
+      middleware-fns)))
 
 (defn with-key-fn [f]
-  [:key-fn f])
+  (element :key-fn f))
 
 (defn with-specification [specification]
-  [:specification specification])
+  (element :specification specification))
 
 (defn with-transformation [transformation]
-  [:transformation transformation])
+  (element :transformation transformation))
 
-(defn define-configuration-specification [& args]
+(defn configuration-specification [& args]
   (let [elements
         (group-by first args)
         parameters
@@ -65,7 +79,7 @@
     (conf-spec/->ConfigurationSpecification
       parameters key-fn transformation)))
 
-(defn define-configuration [& args]
+(defn configuration [& args]
   (let [elements (group-by first args)
 
         top-level-parameters
@@ -97,6 +111,12 @@
         sources (map second (:source elements))
         source (conf-sources/->MultiConfigurationSource sources)]
     (conf-def/->ConfigurationDefinition source specifications)))
+
+(defn ^:deprecated define-configuration-specification [& args]
+  (apply configuration-specification args))
+
+(defn ^:deprecated define-configuration [& args]
+  (apply configuration args))
 
 (defn resolve [definition]
   (configurati.definition/resolve definition))
