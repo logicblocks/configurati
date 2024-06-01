@@ -115,8 +115,8 @@
             (conf/configuration-specification
               (conf/from-configuration-specification existing-specification)
               (conf/with-parameter :api-password))]
-        (is (= {:api-username "admin"
-                :api-password "super-secret"
+        (is (= {:api-username    "admin"
+                :api-password    "super-secret"
                 :api-description "Some API"}
               (conf/resolve
                 (conf/configuration
@@ -124,7 +124,7 @@
                   (conf/with-source
                     (conf/map-source
                       {:some-api-username "admin"
-                       :api-password "super-secret"})))))))))
+                       :api-password      "super-secret"})))))))))
 
   (testing "evaluate"
     (let [evaluate-and-catch
@@ -546,6 +546,22 @@
                  (conf/with-parameter parameter))
               (conf/configuration
                 (conf/with-parameter :api-username :default "admin"))))))
+
+    (testing "allows adding predefined source with middleware"
+      (let [source
+            (conf/middleware-source
+              (conf/map-source
+                {:service-api-audiences
+                 "https://audience1.com,https://audience2.com"})
+              (conf/with-parameter-name-prefix :service)
+              (conf/with-separator-parsing))]
+        (is (= {:api-audiences
+                ["https://audience1.com"
+                 "https://audience2.com"]}
+              (conf/resolve
+                (conf/configuration
+                  (conf/with-parameter :api-audiences)
+                  (conf/with-source source)))))))
 
     (testing "allows copying from existing configuration"
       (let [key-fn (conf-kf/remove-prefix :api)

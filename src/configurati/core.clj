@@ -26,6 +26,13 @@
 (defn multi-source [& sources]
   (conf-sources/->MultiConfigurationSource sources))
 
+(defn middleware-source [delegate & middleware-fns]
+  (reduce
+    (fn [source middleware-fn]
+      (middleware-fn source))
+    delegate
+    middleware-fns))
+
 (defn parameter? [value]
   (satisfies? conf-param/Processable value))
 
@@ -79,7 +86,7 @@
 
 (defn with-separator-parsing
   ([]
-   (with-json-parsing {}))
+   (with-separator-parsing {}))
   ([opts]
    (with-middleware
      (conf-mdlw/separator-parsing-middleware opts))))
@@ -104,11 +111,7 @@
 
 (defn with-source [source & middleware-fns]
   (element :source
-    (reduce
-      (fn [source middleware-fn]
-        (middleware-fn source))
-      source
-      middleware-fns)))
+    (apply middleware-source source middleware-fns)))
 
 (defn with-key-fn [f]
   (element :key-fn f))
