@@ -17,9 +17,11 @@
             [lein-bikeshed "0.5.2"]
             [jonase/eastwood "1.4.0"]]
 
-  :dependencies [[io.logicblocks/jason "1.0.0"]
-                 [clj-commons/clj-yaml "1.0.27"]
+  :dependencies [[clj-commons/clj-yaml "1.0.27"]
+                 [com.stuartsierra/component "1.1.0"]
+                 [com.stuartsierra/dependency "1.0.0"]
                  [environ "1.2.0"]
+                 [io.logicblocks/jason "1.0.0"]
                  [medley "1.4.0"]]
 
   :profiles
