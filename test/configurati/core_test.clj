@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [replace resolve])
   (:require
    [clojure.spec.alpha :as spec]
+   [clojure.string :as string]
    [clojure.test :refer [deftest is testing]]
 
    [configurati.conversions :as conf-conv]
@@ -12,8 +13,8 @@
   (:import
    [clojure.lang ExceptionInfo]))
 
-(defmethod conf-conv/convert-to :boolean [_ value]
-  (if (#{"true" true} value) true false))
+(defmethod conf-conv/convert-to :uppercase-string [_ value]
+  (string/upper-case (str value)))
 
 (deftest configuration-parameters
   (testing "construction"
@@ -323,9 +324,10 @@
 
       (testing "uses custom converter when defined"
         (let [specification (conf/configuration-specification
-                              (conf/with-parameter :encrypted? :type :boolean))
-              configuration-source {:encrypted? "true"}]
-          (is (= {:encrypted? true}
+                              (conf/with-parameter :week-day
+                                :type :uppercase-string))
+              configuration-source {:week-day "tuesday"}]
+          (is (= {:week-day "TUESDAY"}
                 (conf-spec/evaluate specification configuration-source)))))
 
       (testing "throws exception when parameter fails to convert"
