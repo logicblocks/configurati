@@ -2,6 +2,8 @@
   (:refer-clojure :exclude [resolve merge])
   (:require
    [configurati.definition :as conf-def]
+   [configurati.key-fns :as conf-kfns]
+   [configurati.middleware :as conf-mdlw]
    [configurati.parameters :as conf-param]
    [configurati.sources :as conf-sources]
    [configurati.specification :as conf-spec]))
@@ -49,6 +51,38 @@
 (defn with-middleware [middleware]
   (fn [source]
     (conf-sources/->FnConfigurationSource (partial middleware source))))
+
+(defn with-json-parsing
+  ([]
+   (with-json-parsing {}))
+  ([opts]
+   (with-middleware
+     (conf-mdlw/json-parsing-middleware opts))))
+
+(defn with-separator-parsing
+  ([]
+   (with-json-parsing {}))
+  ([opts]
+   (with-middleware
+     (conf-mdlw/separator-parsing-middleware opts))))
+
+(defn with-parameter-name-transformation
+  ([transform-fn]
+   (with-parameter-name-transformation transform-fn {}))
+  ([transform-fn opts]
+   (with-middleware
+     (conf-mdlw/parameter-name-transforming-middleware
+       (clojure.core/merge opts
+         {:transform-fn transform-fn})))))
+
+(defn with-parameter-name-prefix
+  ([prefix]
+   (with-parameter-name-prefix prefix {}))
+  ([prefix opts]
+   (with-middleware
+     (conf-mdlw/parameter-name-transforming-middleware
+       (clojure.core/merge opts
+         {:transform-fn (conf-kfns/add-prefix prefix)})))))
 
 (defn with-source [source & middleware-fns]
   (element :source

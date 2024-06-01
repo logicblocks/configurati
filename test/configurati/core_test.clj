@@ -7,7 +7,6 @@
    [configurati.conversions :as conf-conv]
    [configurati.core :as conf]
    [configurati.key-fns :as conf-kf]
-   [configurati.middleware :as conf-mdlw]
    [configurati.parameters :as conf-param]
    [configurati.specification :as conf-spec])
   (:import
@@ -687,7 +686,7 @@
                    "{\"user\": \"james\",\"pass\": \"X4ftRd32\"}"
                    :api-timeout
                    "10000"})
-                (conf/with-middleware (conf-mdlw/json-parsing-middleware))
+                (conf/with-json-parsing)
                 (conf/with-middleware password-masking-middleware))
               (conf/with-parameter :api-credentials :type :map)
               (conf/with-parameter :api-timeout :type :integer))]
