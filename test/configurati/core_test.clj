@@ -98,7 +98,32 @@
         (is (= (conf/configuration-specification
                  (conf/with-parameter parameter-element))
               (conf/configuration-specification
-                (conf/with-parameter :api-username :nilable false)))))))
+                (conf/with-parameter :api-username :nilable false))))))
+
+    (testing "allows copying from existing configuration specification"
+      (let [key-fn (conf-kf/remove-prefix :some)
+            transformation
+            (fn [config]
+              (assoc config :api-description "Some API"))
+            existing-specification
+            (conf/configuration-specification
+              (conf/with-key-fn key-fn)
+              (conf/with-parameter :some-api-username)
+              (conf/with-transformation transformation))
+            new-specification
+            (conf/configuration-specification
+              (conf/from-configuration-specification existing-specification)
+              (conf/with-parameter :api-password))]
+        (is (= {:api-username "admin"
+                :api-password "super-secret"
+                :api-description "Some API"}
+              (conf/resolve
+                (conf/configuration
+                  (conf/with-specification new-specification)
+                  (conf/with-source
+                    (conf/map-source
+                      {:some-api-username "admin"
+                       :api-password "super-secret"})))))))))
 
   (testing "evaluate"
     (let [evaluate-and-catch
@@ -518,7 +543,40 @@
         (is (= (conf/configuration
                  (conf/with-parameter parameter))
               (conf/configuration
-                (conf/with-parameter :api-username :default "admin")))))))
+                (conf/with-parameter :api-username :default "admin"))))))
+
+    (testing "allows copying from existing configuration"
+      (let [key-fn (conf-kf/remove-prefix :api)
+            transformation
+            (fn [config]
+              (assoc config :description "Some API"))
+            source
+            (conf/map-source
+              {:api-base-url "https://example.com"
+               :api-username "admin"
+               :api-password "super-secret"})
+            specification-1
+            (conf/configuration-specification
+              (conf/with-parameter :api-base-url))
+            specification-2
+            (conf/configuration-specification
+              (conf/with-parameter :api-username))
+            existing-configuration
+            (conf/configuration
+              (conf/with-specification specification-1)
+              (conf/with-specification specification-2)
+              (conf/with-source source))
+            new-configuration
+            (conf/configuration
+              (conf/from-configuration existing-configuration)
+              (conf/with-key-fn key-fn)
+              (conf/with-transformation transformation)
+              (conf/with-parameter :api-password))]
+        (is (= {:base-url    "https://example.com"
+                :username    "admin"
+                :password    "super-secret"
+                :description "Some API"}
+              (conf/resolve new-configuration))))))
 
   (testing "resolve"
     (testing "resolves all parameters in the specification"

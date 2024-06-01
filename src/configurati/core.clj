@@ -29,8 +29,26 @@
 (defn parameter? [value]
   (satisfies? conf-param/Processable value))
 
+(defn- element? [value]
+  (and (sequential? value)
+    (#{:specification
+       :parameter
+       :source
+       :key-fn
+       :transformation}
+     (first value))))
+
 (defn- element [element-type value]
   [element-type value])
+
+(defn- flatten-elements [elements]
+  (reduce
+    (fn [elements element]
+      (if (element? element)
+        (concat elements [element])
+        (concat elements element)))
+    []
+    elements))
 
 (defn parameter
   ([parameter-name]
@@ -101,31 +119,59 @@
 (defn with-transformation [transformation]
   (element :transformation transformation))
 
+(defn from-configuration-specification [specification]
+  (concat
+    (mapv (partial element :parameter) (:parameters specification))
+    [(element :key-fn (:key-fn specification))
+     (element :transformation (:transformation specification))]))
+
 (defn configuration-specification [& args]
-  (let [elements
-        (group-by first args)
+  (let [elements-pre (flatten-elements args)
+        elements
+        (group-by first elements-pre)
         parameters
         (map second (:parameter elements))
+        key-fns
+        (reverse (map second (:key-fn elements)))
         key-fn
-        (apply comp (reverse (map second (:key-fn elements))))
+        (if (= (count key-fns) 1)
+          (first key-fns)
+          (apply comp key-fns))
+        transformations
+        (reverse (map second (:transformation elements)))
         transformation
-        (apply comp (reverse (map second (:transformation elements))))]
+        (if (= (count transformations) 1)
+          (first transformations)
+          (apply comp transformations))]
     (conf-spec/->ConfigurationSpecification
       parameters key-fn transformation)))
 
+(defn ^:deprecated define-configuration-specification [& args]
+  (apply configuration-specification args))
+
+(defn from-configuration [configuration]
+  (concat
+    (mapv (partial element :specification) (:specifications configuration))
+    [(element :source (:source configuration))]))
+
 (defn configuration [& args]
-  (let [elements (group-by first args)
+  (let [elements
+        (group-by first (flatten-elements args))
 
         top-level-parameters
         (map second (:parameter elements))
         top-level-key-fns
         (reverse (map second (:key-fn elements)))
         top-level-key-fn
-        (apply comp top-level-key-fns)
+        (if (= (count top-level-key-fns) 1)
+          (first top-level-key-fns)
+          (apply comp top-level-key-fns))
         top-level-transformations
         (reverse (map second (:transformation elements)))
         top-level-transformation
-        (apply comp top-level-transformations)
+        (if (= (count top-level-transformations) 1)
+          (first top-level-transformations)
+          (apply comp top-level-transformations))
 
         top-level-specification
         (conf-spec/->ConfigurationSpecification
@@ -143,11 +189,11 @@
         specifications (conj existing-specifications top-level-specification)
 
         sources (map second (:source elements))
-        source (conf-sources/->MultiConfigurationSource sources)]
+        source
+        (if (= (count sources) 1)
+          (first sources)
+          (conf-sources/->MultiConfigurationSource sources))]
     (conf-def/->ConfigurationDefinition source specifications)))
-
-(defn ^:deprecated define-configuration-specification [& args]
-  (apply configuration-specification args))
 
 (defn ^:deprecated define-configuration [& args]
   (apply configuration args))

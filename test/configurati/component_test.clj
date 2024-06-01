@@ -7,20 +7,32 @@
 
 (defrecord NonConfigurableComponent [])
 
-(defrecord ConfigurableComponent [configuration-definition configuration]
-           conf-comp/Configurable
-           (configure [component]
-             (assoc component
-               :configuration
-               (conf/resolve configuration-definition))))
+(defrecord ConfigurableComponent
+  [configuration-definition configuration]
+  conf-comp/Configurable
+  (configure [component _]
+    (assoc component
+      :configuration
+      (conf/resolve configuration-definition))))
 
 (defrecord DependentComponent
   [configurable-component configuration-selector value]
   conf-comp/Configurable
-  (configure [component]
+  (configure [component _]
     (assoc component
       :value (configuration-selector
                (:configuration configurable-component)))))
+
+(defrecord ExtraSourcesConfigurableComponent
+  [configuration-specification configuration]
+  conf-comp/Configurable
+  (configure [component {:keys [source]}]
+    (assoc component
+      :configuration
+      (conf/resolve
+        (conf/configuration
+          (conf/with-specification configuration-specification)
+          (conf/with-source source))))))
 
 (deftest configures-single-component-system
   (let [config-def
@@ -103,6 +115,28 @@
             [:configurable-component :configuration])))
     (is (= non-configurable-component
           (get configured-system :non-configurable-component)))))
+
+(deftest allows-additional-source-to-be-provided-at-configuration-time
+  (let [config-spec
+        (conf/configuration-specification
+          (conf/with-parameter :first)
+          (conf/with-parameter :second))
+        component
+        (map->ExtraSourcesConfigurableComponent
+          {:configuration-specification config-spec})
+        initial-system
+        (comp/system-map :component component)
+        source
+        (conf/multi-source
+          (conf/map-source {:first 1})
+          (conf/map-source {:second 2}))
+        configured-system
+        (conf-comp/configure-system initial-system
+          {:source source})]
+    (is (= {:first  1
+            :second 2}
+          (get-in configured-system
+            [:component :configuration])))))
 
 (deftest throws-on-resolution-failure-on-single-component
   (let [config-def
