@@ -47,3 +47,13 @@
              (parameters-to-parse parameter-name))
          (parse-fn parameter-value)
          parameter-value)))))
+
+(defn parameter-name-transforming-middleware
+  ([opts]
+   (fn [source parameter-name]
+     (let [transform-parameter-name?
+           (or (:only opts) (constantly true))
+           transform-fn (if (transform-parameter-name? parameter-name)
+                          (get opts :transform-fn identity)
+                          identity)]
+       (get source (transform-fn parameter-name))))))
