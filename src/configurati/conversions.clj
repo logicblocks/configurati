@@ -10,6 +10,7 @@
 
 (defmethod convert-to :boolean [_ value]
   (cond
+    (nil? value) nil
     (or (= "true" value) (true? value)) true
     (or (= "false" value) (false? value)) false
     :else

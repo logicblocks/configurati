@@ -20,6 +20,8 @@
           (conf-conv/convert-to :integer Integer/MAX_VALUE)))
     (is (= Integer/MIN_VALUE
           (conf-conv/convert-to :integer Integer/MIN_VALUE))))
+  (testing "leaves nil untouched"
+    (is (= nil (conf-conv/convert-to :integer nil))))
   (testing "throws for non-integral values"
     (is (thrown? Exception
           (conf-conv/convert-to :integer "hello there")))
@@ -37,7 +39,9 @@
   (testing "leaves string untouched"
     (is (= "hello" (conf-conv/convert-to :string "hello")))
     (is (= "5" (conf-conv/convert-to :string "5")))
-    (is (= "true" (conf-conv/convert-to :string "true")))))
+    (is (= "true" (conf-conv/convert-to :string "true"))))
+  (testing "leaves nil untouched"
+    (is (= nil (conf-conv/convert-to :string nil)))))
 
 (deftest boolean-conversion
   (testing "converts values to boolean"
@@ -46,6 +50,8 @@
   (testing "leaves booleans untouched"
     (is (= true (conf-conv/convert-to :boolean true)))
     (is (= false (conf-conv/convert-to :boolean false))))
+  (testing "leaves nil untouched"
+    (is (= nil (conf-conv/convert-to :boolean nil))))
   (testing "throws for non-boolean values"
     (is (thrown? Exception
           (conf-conv/convert-to :boolean "spinach"))))
