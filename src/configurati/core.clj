@@ -1,6 +1,7 @@
 (ns configurati.core
   (:refer-clojure :exclude [resolve merge])
   (:require
+   [clojure.string :as str]
    [configurati.definition :as conf-def]
    [configurati.key-fns :as conf-kfns]
    [configurati.middleware :as conf-mdlw]
@@ -42,6 +43,7 @@
        :parameter
        :source
        :key-fn
+       :lookup-prefix
        :transformation}
      (first value))))
 
@@ -113,6 +115,9 @@
   (element :source
     (apply middleware-source source middleware-fns)))
 
+(defn with-lookup-prefix [prefix]
+  (element :lookup-prefix prefix))
+
 (defn with-key-fn [f]
   (element :key-fn f))
 
@@ -122,24 +127,34 @@
 (defn with-transformation [transformation]
   (element :transformation transformation))
 
-(defn from-configuration-specification [specification]
+(defn from-configuration-specification [{:keys [parameters options]}]
   (concat
-    (mapv (partial element :parameter) (:parameters specification))
-    [(element :key-fn (:key-fn specification))
-     (element :transformation (:transformation specification))]))
+    (mapv (partial element :parameter) parameters)
+    (when (:lookup-prefix options)
+      [(element :lookup-prefix (:lookup-prefix options))])
+    [(element :key-fn (:key-fn options))
+     (element :transformation (:transformation options))]))
 
 (defn configuration-specification [& args]
-  (let [elements-pre (flatten-elements args)
-        elements
-        (group-by first elements-pre)
+  (let [elements
+        (group-by first (flatten-elements args))
+
         parameters
         (map second (:parameter elements))
+
         key-fns
         (reverse (map second (:key-fn elements)))
         key-fn
         (if (= (count key-fns) 1)
           (first key-fns)
           (apply comp key-fns))
+
+        lookup-prefixes
+        (map second (:lookup-prefix elements))
+        lookup-prefix
+        (when (seq lookup-prefixes)
+          (keyword (str/join "-" (map name lookup-prefixes))))
+
         transformations
         (reverse (map second (:transformation elements)))
         transformation
@@ -147,7 +162,10 @@
           (first transformations)
           (apply comp transformations))]
     (conf-spec/->ConfigurationSpecification
-      parameters key-fn transformation)))
+      parameters
+      {:key-fn         key-fn
+       :lookup-prefix  lookup-prefix
+       :transformation transformation})))
 
 (defn ^:deprecated define-configuration-specification [& args]
   (apply configuration-specification args))
@@ -163,12 +181,20 @@
 
         top-level-parameters
         (map second (:parameter elements))
+
         top-level-key-fns
         (reverse (map second (:key-fn elements)))
         top-level-key-fn
         (if (= (count top-level-key-fns) 1)
           (first top-level-key-fns)
           (apply comp top-level-key-fns))
+
+        top-level-lookup-prefixes
+        (map second (:lookup-prefix elements))
+        top-level-lookup-prefix
+        (when (seq top-level-lookup-prefixes)
+          (keyword (str/join "-" (map name top-level-lookup-prefixes))))
+
         top-level-transformations
         (reverse (map second (:transformation elements)))
         top-level-transformation
@@ -178,15 +204,27 @@
 
         top-level-specification
         (conf-spec/->ConfigurationSpecification
-          top-level-parameters top-level-key-fn top-level-transformation)
+          top-level-parameters
+          {:key-fn         top-level-key-fn
+           :lookup-prefix  top-level-lookup-prefix
+           :transformation top-level-transformation})
 
         existing-specifications (map second (:specification elements))
         existing-specifications
-        (map (fn [{:keys [parameters key-fn transformation]}]
-               (conf-spec/->ConfigurationSpecification
-                 parameters
-                 (comp top-level-key-fn key-fn)
-                 (comp top-level-transformation transformation)))
+        (map
+          (fn [{:keys [parameters options]}]
+            (let [{:keys [key-fn lookup-prefix transformation]} options
+                  lookup-prefixes
+                  (remove nil? [top-level-lookup-prefix lookup-prefix])
+                  lookup-prefix
+                  (when (seq lookup-prefixes)
+                    (keyword (str/join "-" (map name lookup-prefixes))))]
+              (conf-spec/->ConfigurationSpecification
+                parameters
+                {:key-fn        (comp top-level-key-fn key-fn)
+                 :lookup-prefix lookup-prefix
+                 :transformation
+                 (comp top-level-transformation transformation)})))
           existing-specifications)
 
         specifications (conj existing-specifications top-level-specification)

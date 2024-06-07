@@ -5,6 +5,11 @@
 (defprotocol Evaluatable
   (evaluate [configuration-specification configuration-source]))
 
+(defn maybe-prefixed [lookup-prefix parameter-name]
+  (if lookup-prefix
+    (keyword (str (name lookup-prefix) "-" (name parameter-name)))
+    parameter-name))
+
 (defn- evaluation-result [configuration-source]
   {:missing       []
    :invalid       []
@@ -32,11 +37,13 @@
   (update-in evaluation-result [:evaluated] #(assoc % parameter-name value)))
 
 (defn- determine-evaluation-result
-  [parameters configuration-source key-fn]
+  [parameters configuration-source
+   {:keys [lookup-prefix key-fn]}]
   (reduce
     (fn [evaluation-result parameter]
       (let [parameter-name (:name parameter)
-            initial (parameter-name configuration-source)
+            lookup-key (maybe-prefixed lookup-prefix parameter-name)
+            initial (lookup-key configuration-source)
             defaulted (default parameter initial)
             inspection (check parameter defaulted)
             conversion (convert parameter defaulted)
@@ -61,14 +68,16 @@
     parameters))
 
 (defrecord ConfigurationSpecification
-  [parameters key-fn transformation]
+  [parameters options]
   Evaluatable
   (evaluate [_ configuration-source]
-    (let [evaluation-result (determine-evaluation-result
-                              parameters
-                              configuration-source
-                              key-fn)
+    (let [transformation
+          (get options :transformation identity)
+
+          evaluation-result
+          (determine-evaluation-result parameters configuration-source options)
           valid? (error-free? evaluation-result)
+
           missing-parameters (:missing evaluation-result)
           invalid-parameters (:invalid evaluation-result)
           unconvertible-parameters (:unconvertible evaluation-result)]

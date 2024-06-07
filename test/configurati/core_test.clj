@@ -522,96 +522,7 @@
                      :prefix :database))))))
 
   (testing "multi source"
-    (with-redefs
-     [clojure.core/slurp (fn [path]
-                           (if (= path "path/to/config.yaml")
-                             (str
-                               "---\n"
-                               "api_username: \"some-username\"\n"
-                               "api_password: \"some-password\"\n")))]
-      (let [source (conf/multi-source
-                     (conf/yaml-file-source "path/to/config.yaml")
-                     (conf/map-source {:api-username "default-username"
-                                       :api-port     "5000"}))]
-        (is (= "some-username" (:api-username source)))
-        (is (= "5000" (:api-port source)))
-        (is (= nil (:api-host source)))))))
-
-(deftest configuration-definition
-  (testing "construction"
-    (testing "allows adding predefined parameter"
-      (let [parameter
-            (conf/parameter :api-username {:default "admin"})]
-        (is (= (conf/configuration
-                 (conf/with-parameter parameter))
-              (conf/configuration
-                (conf/with-parameter :api-username :default "admin"))))))
-
-    (testing "allows adding predefined source with middleware"
-      (let [source
-            (conf/middleware-source
-              (conf/map-source
-                {:service-api-audiences
-                 "https://audience1.com,https://audience2.com"})
-              (conf/with-parameter-name-prefix :service)
-              (conf/with-separator-parsing))]
-        (is (= {:api-audiences
-                ["https://audience1.com"
-                 "https://audience2.com"]}
-              (conf/resolve
-                (conf/configuration
-                  (conf/with-parameter :api-audiences)
-                  (conf/with-source source)))))))
-
-    (testing "allows copying from existing configuration"
-      (let [key-fn (conf-kf/remove-prefix :api)
-            transformation
-            (fn [config]
-              (assoc config :description "Some API"))
-            source
-            (conf/map-source
-              {:api-base-url "https://example.com"
-               :api-username "admin"
-               :api-password "super-secret"})
-            specification-1
-            (conf/configuration-specification
-              (conf/with-parameter :api-base-url))
-            specification-2
-            (conf/configuration-specification
-              (conf/with-parameter :api-username))
-            existing-configuration
-            (conf/configuration
-              (conf/with-specification specification-1)
-              (conf/with-specification specification-2)
-              (conf/with-source source))
-            new-configuration
-            (conf/configuration
-              (conf/from-configuration existing-configuration)
-              (conf/with-key-fn key-fn)
-              (conf/with-transformation transformation)
-              (conf/with-parameter :api-password))]
-        (is (= {:base-url    "https://example.com"
-                :username    "admin"
-                :password    "super-secret"
-                :description "Some API"}
-              (conf/resolve new-configuration))))))
-
-  (testing "resolve"
-    (testing "resolves all parameters in the specification"
-      (let [configuration
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source
-                  {:api-username "some-username"
-                   :api-port     "5000"}))
-              (conf/with-parameter :api-username)
-              (conf/with-parameter :api-port
-                :type :integer))]
-        (is (= {:api-username "some-username"
-                :api-port     5000}
-              (conf/resolve configuration)))))
-
-    (testing "resolves from multiple sources"
+    (testing "lookups"
       (with-redefs
        [clojure.core/slurp (fn [path]
                              (if (= path "path/to/config.yaml")
@@ -619,267 +530,420 @@
                                  "---\n"
                                  "api_username: \"some-username\"\n"
                                  "api_password: \"some-password\"\n")))]
-        (let [configuration (conf/configuration
-                              (conf/with-source
-                                (conf/map-source {:api-port "5000"}))
-                              (conf/with-source
-                                (conf/yaml-file-source "path/to/config.yaml"))
-                              (conf/with-parameter :api-username)
-                              (conf/with-parameter :api-password)
-                              (conf/with-parameter :api-port
-                                :type :integer))]
-          (is (= {:api-username "some-username"
-                  :api-password "some-password"
-                  :api-port     5000}
-                (conf/resolve configuration))))))
+        (let [source (conf/multi-source
+                       (conf/yaml-file-source "path/to/config.yaml")
+                       (conf/map-source {:api-username "default-username"
+                                         :api-port     "5000"}))]
+          (is (= "some-username" (:api-username source)))
+          (is (= "5000" (:api-port source)))
+          (is (= nil (:api-host source))))))
 
-    (testing "can be created from an existing specification"
-      (let [specification (conf/configuration-specification
-                            (conf/with-parameter :api-username)
-                            (conf/with-parameter :api-password))
-            configuration (conf/configuration
-                            (conf/with-source
-                              (conf/map-source {:api-username "some-username"
-                                                :api-password "some-password"
-                                                :api-port     "5000"}))
-                            (conf/with-specification specification)
-                            (conf/with-parameter :api-port :type :integer))]
-        (is (= {:api-username "some-username"
-                :api-password "some-password"
-                :api-port     5000}
-              (conf/resolve configuration)))))
+    (testing "construction"
+      (testing "ignores nil sources"
+        (let [source-1 (conf/map-source {:database-username "admin"})
+              source-2 nil
 
-    (testing "can be created from multiple existing specifications"
-      (let [specification1 (conf/configuration-specification
-                             (conf/with-parameter :api-username)
-                             (conf/with-parameter :api-password))
-            specification2 (conf/configuration-specification
-                             (conf/with-parameter :api-port :type :integer))
-            configuration (conf/configuration
-                            (conf/with-source
-                              (conf/map-source {:api-username "some-username"
-                                                :api-password "some-password"
-                                                :api-port     "5000"}))
-                            (conf/with-specification specification1)
-                            (conf/with-specification specification2))]
-        (is (= {:api-username "some-username"
-                :api-password "some-password"
-                :api-port     5000}
-              (conf/resolve configuration)))))
+              multi-source (conf/multi-source source-1 source-2)]
+          (is (= "admin" (:database-username multi-source))))))))
 
-    (testing "scopes key functions when defined on specifications"
-      (let [specification1
-            (conf/configuration-specification
-              (conf/with-parameter :db-username)
-              (conf/with-key-fn (conf-kf/remove-prefix :db))
-              (conf/with-key-fn (conf-kf/add-prefix :postgres)))
-            specification2
-            (conf/configuration-specification
-              (conf/with-parameter :database-password)
-              (conf/with-key-fn
-                (conf-kf/remove-prefix :database))
-              (conf/with-key-fn (conf-kf/add-prefix :postgres)))
-            configuration
-            (conf/configuration
-              (conf/with-source {:db-username       "some-username"
-                                 :database-password "some-password"})
-              (conf/with-specification specification1)
-              (conf/with-specification specification2))]
-        (is (= {:postgres-username "some-username"
-                :postgres-password "some-password"}
-              (conf/resolve configuration)))))
+(deftest configuration-definition
+  (testing "resolves all parameters in the specification"
+    (let [configuration
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source
+                {:api-username "some-username"
+                 :api-port     "5000"}))
+            (conf/with-parameter :api-username)
+            (conf/with-parameter :api-port
+              :type :integer))]
+      (is (= {:api-username "some-username"
+              :api-port     5000}
+            (conf/resolve configuration)))))
 
-    (testing "uses provided key functions"
-      (let [configuration
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source {:api-username "some-username"
-                                  :api-password "some-password"
-                                  :api-port     "5000"}))
-              (conf/with-parameter :api-username)
-              (conf/with-parameter :api-password)
-              (conf/with-parameter :api-port :type :integer)
-              (conf/with-key-fn (conf-kf/remove-prefix :api))
-              (conf/with-key-fn (conf-kf/add-prefix :service)))]
-        (is (= {:service-username "some-username"
-                :service-password "some-password"
-                :service-port     5000}
-              (conf/resolve configuration)))))
-
-    (testing "scopes transformations when defined on specifications"
-      (let [specification1 (conf/configuration-specification
-                             (conf/with-parameter :username)
-                             (conf/with-parameter :password)
-                             (conf/with-transformation
-                               (fn [m] {:credentials m})))
-            specification2 (conf/configuration-specification
-                             (conf/with-parameter :timeout :type :integer)
-                             (conf/with-transformation
-                               (fn [m] {:options m})))
-            configuration (conf/configuration
-                            (conf/with-source {:username "some-username"
-                                               :password "some-password"
-                                               :timeout  10000})
-                            (conf/with-specification specification1)
-                            (conf/with-specification specification2))]
-        (is (= {:credentials {:username "some-username"
-                              :password "some-password"}
-                :options     {:timeout 10000}}
-              (conf/resolve configuration)))))
-
-    (testing "uses provided transformations"
+  (testing "resolves from multiple sources"
+    (with-redefs
+     [clojure.core/slurp (fn [path]
+                           (if (= path "path/to/config.yaml")
+                             (str
+                               "---\n"
+                               "api_username: \"some-username\"\n"
+                               "api_password: \"some-password\"\n")))]
       (let [configuration (conf/configuration
                             (conf/with-source
-                              (conf/map-source {:username "some-username"
-                                                :password "some-password"}))
-                            (conf/with-parameter :username)
-                            (conf/with-parameter :password)
-                            (conf/with-transformation
-                              (fn [m] {:credentials m}))
-                            (conf/with-transformation
-                              (fn [m] (merge {:options {:timeout 5000}} m))))]
-        (is (= {:credentials {:username "some-username"
-                              :password "some-password"}
-                :options     {:timeout 5000}}
-              (conf/resolve configuration)))))
-
-    (testing "applies source middleware before resolution"
-      (let [password-masking-middleware
-            (fn [source parameter-name]
-              (let [parameter-value (get source parameter-name)]
-                (if (= parameter-name :api-credentials)
-                  (assoc parameter-value
-                    :pass (apply str
-                            (take (count (:pass parameter-value))
-                              (repeat "*"))))
-                  parameter-value)))
-
-            configuration
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source
-                  {:api-credentials
-                   "{\"user\": \"james\",\"pass\": \"X4ftRd32\"}"
-                   :api-timeout
-                   "10000"})
-                (conf/with-json-parsing)
-                (conf/with-middleware password-masking-middleware))
-              (conf/with-parameter :api-credentials :type :map)
-              (conf/with-parameter :api-timeout :type :integer))]
-        (is (= {:api-timeout     10000
-                :api-credentials {:user "james"
-                                  :pass "********"}}
+                              (conf/map-source {:api-port "5000"}))
+                            (conf/with-source
+                              (conf/yaml-file-source "path/to/config.yaml"))
+                            (conf/with-parameter :api-username)
+                            (conf/with-parameter :api-password)
+                            (conf/with-parameter :api-port
+                              :type :integer))]
+        (is (= {:api-username "some-username"
+                :api-password "some-password"
+                :api-port     5000}
               (conf/resolve configuration))))))
 
-  (testing "merge"
-    (testing "resolves parameters across all definitions"
-      (let [configuration-1
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source {:api-username "api-username"
-                                  :api-password "api-password"}))
-              (conf/with-parameter :api-username)
-              (conf/with-parameter :api-password))
-            configuration-2
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source {:db-username "db-username"
-                                  :db-password "db-password"}))
-              (conf/with-parameter :db-username)
-              (conf/with-parameter :db-password))
-            merged (conf/merge configuration-1 configuration-2)]
-        (is (= {:api-username "api-username"
-                :api-password "api-password"
-                :db-username  "db-username"
-                :db-password  "db-password"}
-              (conf/resolve merged)))))
+  (testing "can be created from an existing specification"
+    (let [specification (conf/configuration-specification
+                          (conf/with-parameter :api-username)
+                          (conf/with-parameter :api-password))
+          configuration (conf/configuration
+                          (conf/with-source
+                            (conf/map-source {:api-username "some-username"
+                                              :api-password "some-password"
+                                              :api-port     "5000"}))
+                          (conf/with-specification specification)
+                          (conf/with-parameter :api-port :type :integer))]
+      (is (= {:api-username "some-username"
+              :api-password "some-password"
+              :api-port     5000}
+            (conf/resolve configuration)))))
 
-    (testing "uses only sources defined within each configuration definition"
-      (let [configuration-1
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source
-                  {:api-username "api-username"
-                   :api-password "api-password"
-                   :db-username  "other-db-username"
-                   :db-password  "other-db-password"}))
-              (conf/with-parameter :api-username)
-              (conf/with-parameter :api-password))
-            configuration-2
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source
-                  {:api-username "other-api-username"
-                   :api-password "other-api-password"
-                   :db-username  "db-username"
-                   :db-password  "db-password"}))
-              (conf/with-parameter :db-username)
-              (conf/with-parameter :db-password))
-            merged (conf/merge configuration-1 configuration-2)]
-        (is (= {:api-username "api-username"
-                :api-password "api-password"
-                :db-username  "db-username"
-                :db-password  "db-password"}
-              (conf/resolve merged)))))
+  (testing "can be created from multiple existing specifications"
+    (let [specification1 (conf/configuration-specification
+                           (conf/with-parameter :api-username)
+                           (conf/with-parameter :api-password))
+          specification2 (conf/configuration-specification
+                           (conf/with-parameter :api-port :type :integer))
+          configuration (conf/configuration
+                          (conf/with-source
+                            (conf/map-source {:api-username "some-username"
+                                              :api-password "some-password"
+                                              :api-port     "5000"}))
+                          (conf/with-specification specification1)
+                          (conf/with-specification specification2))]
+      (is (= {:api-username "some-username"
+              :api-password "some-password"
+              :api-port     5000}
+            (conf/resolve configuration)))))
 
-    (testing "scopes key functions to each configuration definition"
-      (let [configuration-1
+  (testing "allows adding predefined parameter"
+    (let [parameter
+          (conf/parameter :api-username {:default "admin"})]
+      (is (= (conf/configuration
+               (conf/with-parameter parameter))
             (conf/configuration
-              (conf/with-source
-                (conf/map-source
-                  {:api-username "api-username"
-                   :api-password "api-password"}))
-              (conf/with-parameter :api-username)
-              (conf/with-parameter :api-password)
-              (conf/with-key-fn (conf-kf/remove-prefix :api))
-              (conf/with-key-fn (conf-kf/add-prefix :service)))
-            configuration-2
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source
-                  {:db-username "db-username"
-                   :db-password "db-password"}))
-              (conf/with-parameter :db-username)
-              (conf/with-parameter :db-password)
-              (conf/with-key-fn (conf-kf/remove-prefix :db))
-              (conf/with-key-fn (conf-kf/add-prefix :database)))
-            merged (conf/merge configuration-1 configuration-2)]
-        (is (= {:service-username  "api-username"
-                :service-password  "api-password"
-                :database-username "db-username"
-                :database-password "db-password"}
-              (conf/resolve merged)))))
+              (conf/with-parameter :api-username :default "admin"))))))
 
-    (testing "scopes transformations to each configuration definition"
-      (let [configuration-1
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source
-                  {:username "api-username"
-                   :password "api-password"}))
-              (conf/with-parameter :username)
-              (conf/with-parameter :password)
-              (conf/with-transformation
-                (fn [m] (merge {:timeout 10000} m)))
-              (conf/with-transformation
-                (fn [m] {:api m})))
-            configuration-2
-            (conf/configuration
-              (conf/with-source
-                (conf/map-source
-                  {:username "db-username"
-                   :password "db-password"}))
-              (conf/with-parameter :username)
-              (conf/with-parameter :password)
-              (conf/with-transformation
-                (fn [m] (merge {:timeout 30000} m)))
-              (conf/with-transformation
-                (fn [m] {:db m})))
-            merged (conf/merge configuration-1 configuration-2)]
-        (is (= {:api {:username "api-username"
-                      :password "api-password"
-                      :timeout  10000}
-                :db  {:username "db-username"
-                      :password "db-password"
-                      :timeout  30000}}
-              (conf/resolve merged)))))))
+  (testing "allows adding predefined source with middleware"
+    (let [source
+          (conf/middleware-source
+            (conf/map-source
+              {:service-api-audiences
+               "https://audience1.com,https://audience2.com"})
+            (conf/with-parameter-name-prefix :service)
+            (conf/with-separator-parsing))]
+      (is (= {:api-audiences
+              ["https://audience1.com"
+               "https://audience2.com"]}
+            (conf/resolve
+              (conf/configuration
+                (conf/with-parameter :api-audiences)
+                (conf/with-source source)))))))
+
+  (testing "uses provided lookup prefix"
+    (let [configuration
+          (conf/configuration
+            (conf/with-lookup-prefix :api)
+            (conf/with-source
+              (conf/map-source {:api-username "some-username"
+                                :api-password "some-password"
+                                :api-port     "5000"}))
+            (conf/with-parameter :username)
+            (conf/with-parameter :password)
+            (conf/with-parameter :port :type :integer))]
+      (is (= {:username "some-username"
+              :password "some-password"
+              :port     5000}
+            (conf/resolve configuration)))))
+
+  (testing "concatenates multiple lookup prefixes in definition order"
+    (let [configuration
+          (conf/configuration
+            (conf/with-lookup-prefix :admin)
+            (conf/with-lookup-prefix :api)
+            (conf/with-source
+              (conf/map-source {:admin-api-username "some-username"
+                                :admin-api-password "some-password"
+                                :admin-api-port     "5000"}))
+            (conf/with-parameter :username)
+            (conf/with-parameter :password)
+            (conf/with-parameter :port :type :integer))]
+      (is (= {:username "some-username"
+              :password "some-password"
+              :port     5000}
+            (conf/resolve configuration)))))
+
+  (testing "concatenates lookup prefixes when defined on specifications"
+    (let [specification-1
+          (conf/configuration-specification
+            (conf/with-lookup-prefix :admin)
+            (conf/with-parameter :username)
+            (conf/with-parameter :password))
+          specification-2
+          (conf/configuration-specification
+            (conf/with-parameter :host))
+          configuration
+          (conf/configuration
+            (conf/with-lookup-prefix :service)
+            (conf/with-specification specification-1)
+            (conf/with-specification specification-2)
+            (conf/with-source
+              (conf/map-source
+                {:service-host           "https://example.com"
+                 :service-admin-username "admin"
+                 :service-admin-password "supersecret"})))]
+      (is (= {:host     "https://example.com"
+              :username "admin"
+              :password "supersecret"}
+            (conf/resolve configuration)))))
+
+  (testing "uses provided key functions"
+    (let [configuration
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source {:api-username "some-username"
+                                :api-password "some-password"
+                                :api-port     "5000"}))
+            (conf/with-parameter :api-username)
+            (conf/with-parameter :api-password)
+            (conf/with-parameter :api-port :type :integer)
+            (conf/with-key-fn (conf-kf/remove-prefix :api))
+            (conf/with-key-fn (conf-kf/add-prefix :service)))]
+      (is (= {:service-username "some-username"
+              :service-password "some-password"
+              :service-port     5000}
+            (conf/resolve configuration)))))
+
+  (testing "scopes key functions when defined on specifications"
+    (let [specification1
+          (conf/configuration-specification
+            (conf/with-parameter :db-username)
+            (conf/with-key-fn (conf-kf/remove-prefix :db))
+            (conf/with-key-fn (conf-kf/add-prefix :postgres)))
+          specification2
+          (conf/configuration-specification
+            (conf/with-parameter :database-password)
+            (conf/with-key-fn
+              (conf-kf/remove-prefix :database))
+            (conf/with-key-fn (conf-kf/add-prefix :postgres)))
+          configuration
+          (conf/configuration
+            (conf/with-source {:db-username       "some-username"
+                               :database-password "some-password"})
+            (conf/with-specification specification1)
+            (conf/with-specification specification2))]
+      (is (= {:postgres-username "some-username"
+              :postgres-password "some-password"}
+            (conf/resolve configuration)))))
+
+  (testing "uses provided transformations"
+    (let [configuration (conf/configuration
+                          (conf/with-source
+                            (conf/map-source {:username "some-username"
+                                              :password "some-password"}))
+                          (conf/with-parameter :username)
+                          (conf/with-parameter :password)
+                          (conf/with-transformation
+                            (fn [m] {:credentials m}))
+                          (conf/with-transformation
+                            (fn [m] (merge {:options {:timeout 5000}} m))))]
+      (is (= {:credentials {:username "some-username"
+                            :password "some-password"}
+              :options     {:timeout 5000}}
+            (conf/resolve configuration)))))
+
+  (testing "scopes transformations when defined on specifications"
+    (let [specification1 (conf/configuration-specification
+                           (conf/with-parameter :username)
+                           (conf/with-parameter :password)
+                           (conf/with-transformation
+                             (fn [m] {:credentials m})))
+          specification2 (conf/configuration-specification
+                           (conf/with-parameter :timeout :type :integer)
+                           (conf/with-transformation
+                             (fn [m] {:options m})))
+          configuration (conf/configuration
+                          (conf/with-source {:username "some-username"
+                                             :password "some-password"
+                                             :timeout  10000})
+                          (conf/with-specification specification1)
+                          (conf/with-specification specification2))]
+      (is (= {:credentials {:username "some-username"
+                            :password "some-password"}
+              :options     {:timeout 10000}}
+            (conf/resolve configuration)))))
+
+  (testing "applies source middleware before resolution"
+    (let [password-masking-middleware
+          (fn [source parameter-name]
+            (let [parameter-value (get source parameter-name)]
+              (if (= parameter-name :api-credentials)
+                (assoc parameter-value
+                  :pass (apply str
+                          (take (count (:pass parameter-value))
+                            (repeat "*"))))
+                parameter-value)))
+
+          configuration
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source
+                {:api-credentials
+                 "{\"user\": \"james\",\"pass\": \"X4ftRd32\"}"
+                 :api-timeout
+                 "10000"})
+              (conf/with-json-parsing)
+              (conf/with-middleware password-masking-middleware))
+            (conf/with-parameter :api-credentials :type :map)
+            (conf/with-parameter :api-timeout :type :integer))]
+      (is (= {:api-timeout     10000
+              :api-credentials {:user "james"
+                                :pass "********"}}
+            (conf/resolve configuration)))))
+
+  (testing "allows copying from existing configuration"
+    (let [key-fn (conf-kf/remove-prefix :api)
+          transformation
+          (fn [config]
+            (assoc config :description "Some API"))
+          source
+          (conf/map-source
+            {:api-base-url "https://example.com"
+             :api-username "admin"
+             :api-password "super-secret"})
+          specification-1
+          (conf/configuration-specification
+            (conf/with-parameter :api-base-url))
+          specification-2
+          (conf/configuration-specification
+            (conf/with-parameter :api-username))
+          existing-configuration
+          (conf/configuration
+            (conf/with-specification specification-1)
+            (conf/with-specification specification-2)
+            (conf/with-source source))
+          new-configuration
+          (conf/configuration
+            (conf/from-configuration existing-configuration)
+            (conf/with-key-fn key-fn)
+            (conf/with-transformation transformation)
+            (conf/with-parameter :api-password))]
+      (is (= {:base-url    "https://example.com"
+              :username    "admin"
+              :password    "super-secret"
+              :description "Some API"}
+            (conf/resolve new-configuration))))))
+
+(deftest configuration-merge
+  (testing "resolves parameters across all definitions"
+    (let [configuration-1
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source {:api-username "api-username"
+                                :api-password "api-password"}))
+            (conf/with-parameter :api-username)
+            (conf/with-parameter :api-password))
+          configuration-2
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source {:db-username "db-username"
+                                :db-password "db-password"}))
+            (conf/with-parameter :db-username)
+            (conf/with-parameter :db-password))
+          merged (conf/merge configuration-1 configuration-2)]
+      (is (= {:api-username "api-username"
+              :api-password "api-password"
+              :db-username  "db-username"
+              :db-password  "db-password"}
+            (conf/resolve merged)))))
+
+  (testing "uses only sources defined within each configuration definition"
+    (let [configuration-1
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source
+                {:api-username "api-username"
+                 :api-password "api-password"
+                 :db-username  "other-db-username"
+                 :db-password  "other-db-password"}))
+            (conf/with-parameter :api-username)
+            (conf/with-parameter :api-password))
+          configuration-2
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source
+                {:api-username "other-api-username"
+                 :api-password "other-api-password"
+                 :db-username  "db-username"
+                 :db-password  "db-password"}))
+            (conf/with-parameter :db-username)
+            (conf/with-parameter :db-password))
+          merged (conf/merge configuration-1 configuration-2)]
+      (is (= {:api-username "api-username"
+              :api-password "api-password"
+              :db-username  "db-username"
+              :db-password  "db-password"}
+            (conf/resolve merged)))))
+
+  (testing "scopes key functions to each configuration definition"
+    (let [configuration-1
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source
+                {:api-username "api-username"
+                 :api-password "api-password"}))
+            (conf/with-parameter :api-username)
+            (conf/with-parameter :api-password)
+            (conf/with-key-fn (conf-kf/remove-prefix :api))
+            (conf/with-key-fn (conf-kf/add-prefix :service)))
+          configuration-2
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source
+                {:db-username "db-username"
+                 :db-password "db-password"}))
+            (conf/with-parameter :db-username)
+            (conf/with-parameter :db-password)
+            (conf/with-key-fn (conf-kf/remove-prefix :db))
+            (conf/with-key-fn (conf-kf/add-prefix :database)))
+          merged (conf/merge configuration-1 configuration-2)]
+      (is (= {:service-username  "api-username"
+              :service-password  "api-password"
+              :database-username "db-username"
+              :database-password "db-password"}
+            (conf/resolve merged)))))
+
+  (testing "scopes transformations to each configuration definition"
+    (let [configuration-1
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source
+                {:username "api-username"
+                 :password "api-password"}))
+            (conf/with-parameter :username)
+            (conf/with-parameter :password)
+            (conf/with-transformation
+              (fn [m] (merge {:timeout 10000} m)))
+            (conf/with-transformation
+              (fn [m] {:api m})))
+          configuration-2
+          (conf/configuration
+            (conf/with-source
+              (conf/map-source
+                {:username "db-username"
+                 :password "db-password"}))
+            (conf/with-parameter :username)
+            (conf/with-parameter :password)
+            (conf/with-transformation
+              (fn [m] (merge {:timeout 30000} m)))
+            (conf/with-transformation
+              (fn [m] {:db m})))
+          merged (conf/merge configuration-1 configuration-2)]
+      (is (= {:api {:username "api-username"
+                    :password "api-password"
+                    :timeout  10000}
+              :db  {:username "db-username"
+                    :password "db-password"
+                    :timeout  30000}}
+            (conf/resolve merged))))))
