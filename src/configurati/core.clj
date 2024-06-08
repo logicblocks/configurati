@@ -59,6 +59,9 @@
     []
     elements))
 
+(defn- collect-elements [args]
+  (group-by first (flatten-elements (remove nil? args))))
+
 (defn parameter
   ([parameter-name]
    (parameter parameter-name {}))
@@ -116,7 +119,8 @@
     (apply middleware-source source middleware-fns)))
 
 (defn with-lookup-prefix [prefix]
-  (element :lookup-prefix prefix))
+  (when prefix
+    (element :lookup-prefix prefix)))
 
 (defn with-key-fn [f]
   (element :key-fn f))
@@ -136,8 +140,7 @@
      (element :transformation (:transformation options))]))
 
 (defn configuration-specification [& args]
-  (let [elements
-        (group-by first (flatten-elements args))
+  (let [elements (collect-elements args)
 
         parameters
         (map second (:parameter elements))
@@ -176,8 +179,7 @@
     [(element :source (:source configuration))]))
 
 (defn configuration [& args]
-  (let [elements
-        (group-by first (flatten-elements args))
+  (let [elements (collect-elements args)
 
         top-level-parameters
         (map second (:parameter elements))

@@ -657,6 +657,22 @@
               :port     5000}
             (conf/resolve configuration)))))
 
+  (testing "ignores lookup prefix when nil"
+    (let [configuration
+          (conf/configuration
+            (conf/with-lookup-prefix nil)
+            (conf/with-source
+              (conf/map-source {:username "some-username"
+                                :password "some-password"
+                                :port     "5000"}))
+            (conf/with-parameter :username)
+            (conf/with-parameter :password)
+            (conf/with-parameter :port :type :integer))]
+      (is (= {:username "some-username"
+              :password "some-password"
+              :port     5000}
+            (conf/resolve configuration)))))
+
   (testing "concatenates multiple lookup prefixes in definition order"
     (let [configuration
           (conf/configuration
