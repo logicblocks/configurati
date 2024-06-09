@@ -131,6 +131,7 @@
   (equals [_ other]
     (and (instance? FnConfigurationSource other)
       (= source-fn (.-source-fn ^FnConfigurationSource other))))
+
   (hashCode [_]
     (.hashCode source-fn))
 
@@ -153,6 +154,7 @@
   (equals [_ other]
     (and (instance? MultiConfigurationSource other)
       (= sources (.-sources ^MultiConfigurationSource other))))
+
   (hashCode [_]
     (.hashCode sources))
 

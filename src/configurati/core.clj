@@ -25,7 +25,8 @@
     (conf-sources/->YamlFileConfigurationSource path prefix)))
 
 (defn multi-source [& sources]
-  (conf-sources/->MultiConfigurationSource sources))
+  (conf-sources/->MultiConfigurationSource
+    (remove nil? sources)))
 
 (defn middleware-source [delegate & middleware-fns]
   (reduce
@@ -235,7 +236,8 @@
         source
         (if (= (count sources) 1)
           (first sources)
-          (conf-sources/->MultiConfigurationSource sources))]
+          (conf-sources/->MultiConfigurationSource
+            (remove nil? sources)))]
     (conf-def/->ConfigurationDefinition source specifications)))
 
 (defn ^:deprecated define-configuration [& args]
